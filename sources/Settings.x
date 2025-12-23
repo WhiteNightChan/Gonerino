@@ -1,18 +1,6 @@
 #import "Settings.h"
 #import "Util.h"
 
-%hook YTSettingsGroupData
-
-- (NSArray<NSNumber *> *)orderedCategories {
-    if (self.type != 1)
-        return %orig;
-    NSMutableArray *mutableCategories = %orig.mutableCopy;
-    [mutableCategories insertObject:@(GonerinoSection) atIndex:0];
-    return mutableCategories.copy;
-}
-
-%end
-
 %hook YTAppSettingsPresentationData
 
 + (NSArray *)settingsCategoryOrder {
