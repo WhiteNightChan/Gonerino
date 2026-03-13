@@ -152,44 +152,18 @@
                                                             [UIAlertAction actionWithTitle:@"Edit"
                                                                                      style:UIAlertActionStyleDefault
                                                                                    handler:^(UIAlertAction *action) {
-
-                                                                UIAlertController *editController =
-                                                                    [UIAlertController alertControllerWithTitle:@"Edit Channel"
-                                                                                                        message:nil
-                                                                                                 preferredStyle:UIAlertControllerStyleAlert];
-
-                                                                [editController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-                                                                    textField.text = channelName;
-                                                                }];
-
-                                                                [editController addAction:
-                                                                    [UIAlertAction actionWithTitle:@"Save"
-                                                                                             style:UIAlertActionStyleDefault
-                                                                                           handler:^(UIAlertAction *action) {
-
-                                                                        NSString *newName = editController.textFields.firstObject.text;
-
-                                                                        if (newName.length > 0) {
-                                                                            NSMutableArray *channels =
-                                                                                [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
-                                                                            NSUInteger index = [channels indexOfObject:channelName];
-                                                                            if (index != NSNotFound) {
-                                                                                channels[index] = newName;
-                                                                                [[ChannelManager sharedInstance] setBlockedChannels:channels];
-                                                                            }
-                                                                            [self reloadGonerinoSection];
+                                                                [self presentEditAlertWithTitle:@"Edit Channel"
+                                                                                    initialText:channelName
+                                                                                     saveBlock:^(NSString *newChannel) {
+                                                                    NSMutableArray *channels =
+                                                                        [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
+                                                                    NSUInteger index = [channels indexOfObject:channelName];
+                                                                    if (index != NSNotFound) {
+                                                                        channels[index] = newChannel;
+                                                                        [[ChannelManager sharedInstance] setBlockedChannels:channels];
                                                                         }
-                                                                    }]];
-
-                                                                [editController addAction:
-                                                                    [UIAlertAction actionWithTitle:@"Cancel"
-                                                                                             style:UIAlertActionStyleCancel
-                                                                                           handler:nil]];
-
-                                                                [settingsVC presentViewController:editController
-                                                                                         animated:YES
-                                                                                       completion:nil];
-                                                            }]];
+                                                                }];
+                                                        }]];
 
                                                         [alertController
                                                             addAction:
@@ -308,9 +282,7 @@
                                                                     actionWithTitle:@"Delete"
                                                                               style:UIAlertActionStyleDestructive
                                                                             handler:^(UIAlertAction *action) {
-                                                                                [[VideoManager sharedInstance]
-                                                                                    removeBlockedVideo:videoInfo
-                                                                                                           [@"id"]];
+                                                                                [[VideoManager sharedInstance] removeBlockedVideo:videoInfo[@"id"]];
                                                                                 [self reloadGonerinoSection];
 
                                                                                 UIImpactFeedbackGenerator *generator =
@@ -452,43 +424,17 @@
                                                             [UIAlertAction actionWithTitle:@"Edit"
                                                                                      style:UIAlertActionStyleDefault
                                                                                    handler:^(UIAlertAction *action) {
-
-                                                                UIAlertController *editController =
-                                                                    [UIAlertController alertControllerWithTitle:@"Edit Word"
-                                                                                                        message:nil
-                                                                                                 preferredStyle:UIAlertControllerStyleAlert];
-
-                                                                [editController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-                                                                    textField.text = word;
-                                                                }];
-
-                                                                [editController addAction:
-                                                                    [UIAlertAction actionWithTitle:@"Save"
-                                                                                             style:UIAlertActionStyleDefault
-                                                                                           handler:^(UIAlertAction *action) {
-
-                                                                        NSString *newWord = editController.textFields.firstObject.text;
-
-                                                                        if (newWord.length > 0) {
-                                                                            NSMutableArray *words =
-                                                                                [[[WordManager sharedInstance] blockedWords] mutableCopy];
-                                                                            NSUInteger index = [words indexOfObject:word];
-                                                                            if (index != NSNotFound) {
-                                                                                words[index] = newWord;
-                                                                                [[WordManager sharedInstance] setBlockedWords:words];
+                                                                                   [self presentEditAlertWithTitle:@"Edit Word"
+                                                                                                       initialText:word
+                                                                                                        saveBlock:^(NSString *newWord) {
+                                                                                       NSMutableArray *words =
+                                                                                           [[[WordManager sharedInstance] blockedWords] mutableCopy];
+                                                                                       NSUInteger index = [words indexOfObject:word];
+                                                                                       if (index != NSNotFound) {
+                                                                                           words[index] = newWord;
+                                                                                           [[WordManager sharedInstance] setBlockedWords:words];
                                                                             }
-                                                                            [self reloadGonerinoSection];
-                                                                        }
-                                                                    }]];
-
-                                                                [editController addAction:
-                                                                    [UIAlertAction actionWithTitle:@"Cancel"
-                                                                                             style:UIAlertActionStyleCancel
-                                                                                           handler:nil]];
-
-                                                                [settingsVC presentViewController:editController
-                                                                                         animated:YES
-                                                                                       completion:nil];
+                                                                    }];
                                                             }]];
 
                                                         [alertController
@@ -842,6 +788,79 @@
     YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
     NSString *message                    = isImportOperation ? @"Import cancelled" : @"Export cancelled";
     [[%c(YTToastResponderEvent) eventWithMessage:message firstResponder:settingsVC] send];
+}
+
+%new
+- (BOOL)textView:(UITextView *)textView
+shouldChangeTextInRange:(NSRange)range
+replacementText:(NSString *)text {
+
+    if ([text isEqualToString:@"\n"]) {
+        [textView resignFirstResponder];
+        return NO;
+    }
+
+    return YES;
+}
+
+%new
+- (void)presentEditAlertWithTitle:(NSString *)title
+                       initialText:(NSString *)text
+                        saveBlock:(void (^)(NSString *newText))saveBlock {
+
+    YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
+
+    UIAlertController *editController =
+        [UIAlertController alertControllerWithTitle:title
+                                            message:@"\n\n\n\n\n\n\n\n\n\n"
+                                     preferredStyle:UIAlertControllerStyleAlert];
+
+    UIFont *font = [UIFont systemFontOfSize:14];
+    CGFloat height = font.lineHeight * 9 + 12;
+
+    UITextView *textView =
+        [[UITextView alloc] initWithFrame:CGRectMake(10, 58, 250, height)];
+
+    textView.text = text;
+    textView.font = font;
+    textView.textContainerInset = UIEdgeInsetsMake(8, 4, 8, 4);
+    textView.returnKeyType = UIReturnKeyDone;
+    textView.delegate = (id<UITextViewDelegate>)self;
+
+    textView.autocorrectionType = UITextAutocorrectionTypeNo;
+    textView.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    textView.smartQuotesType = UITextSmartQuotesTypeNo;
+    textView.smartDashesType = UITextSmartDashesTypeNo;
+    textView.smartInsertDeleteType = UITextSmartInsertDeleteTypeNo;
+
+    textView.textContainer.lineBreakMode = NSLineBreakByCharWrapping;
+    textView.scrollEnabled = YES;
+
+    textView.layer.borderWidth = 0.5;
+    textView.layer.cornerRadius = 6;
+
+    [editController.view addSubview:textView];
+
+    [editController addAction:
+        [UIAlertAction actionWithTitle:@"Save"
+                                 style:UIAlertActionStyleDefault
+                               handler:^(UIAlertAction *action) {
+
+        NSString *newText = textView.text;
+
+        if (newText.length > 0) {
+            saveBlock(newText);
+            [self reloadGonerinoSection];
+        }
+
+    }]];
+
+    [editController addAction:
+        [UIAlertAction actionWithTitle:@"Cancel"
+                                 style:UIAlertActionStyleCancel
+                               handler:nil]];
+
+    [settingsVC presentViewController:editController animated:YES completion:nil];
 }
 
 %end
