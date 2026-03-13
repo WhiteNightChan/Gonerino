@@ -3,8 +3,8 @@
 %hook YTAsyncCollectionView
 
 - (void)layoutSubviews {
-    %orig;
     [self removeOffendingCells];
+    %orig;
 }
 
 %new
@@ -18,6 +18,7 @@
 
         @try {
             NSArray *visibleCells              = [strongSelf visibleCells];
+            if (visibleCells.count == 0) return;
             NSMutableArray *indexPathsToRemove = [NSMutableArray array];
 
             for (UICollectionViewCell *cell in visibleCells) {
@@ -26,10 +27,6 @@
                 }
 
                 _ASCollectionViewCell *asCell = (_ASCollectionViewCell *)cell;
-                if (![asCell respondsToSelector:@selector(node)]) {
-                    continue;
-                }
-
                 id node = [asCell node];
                 if (![node isKindOfClass:NSClassFromString(@"YTVideoWithContextNode")]) {
                     continue;
