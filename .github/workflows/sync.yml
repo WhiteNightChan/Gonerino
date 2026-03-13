@@ -1,0 +1,64 @@
+name: Sync with Upstream
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up Git
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+
+      - name: Backup sync workflow
+        run: |
+          mkdir -p /tmp/workflow-backup
+          cp .github/workflows/sync.yml /tmp/workflow-backup/
+          cp .github/workflows/custom.yml /tmp/workflow-backup/
+          cp .github/workflows/delete-workflow-runs.yml /tmp/workflow-backup/
+
+      - name: Add upstream repository
+        run: |
+          git remote add upstream https://github.com/castdrian/Gonerino.git
+
+      - name: Fetch upstream
+        run: |
+          git fetch upstream
+
+      - name: Reset to upstream
+        run: |
+          git reset --hard upstream/main
+
+      - name: Restore sync workflow
+        run: |
+          mkdir -p .github/workflows
+          cp /tmp/workflow-backup/sync.yml .github/workflows/
+          cp /tmp/workflow-backup/custom.yml .github/workflows/
+          cp /tmp/workflow-backup/delete-workflow-runs.yml .github/workflows/
+          cd .github/workflows/
+          git add .
+          git diff --staged --quiet || git commit -m "Restore Workflows"
+
+      - name: Push to origin
+        run: |
+          git push --force origin main
+        continue-on-error: true
+
+      - name: Check push status
+        run: |
+          if [ $? -ne 0 ]; then
+            echo "Force push failed"
+            exit 1
+          fi
