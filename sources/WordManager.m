@@ -42,8 +42,30 @@
 
 - (BOOL)isWordBlocked:(NSString *)text {
     for (NSString *word in self.blockedWordSet) {
-        if ([text.lowercaseString containsString:word.lowercaseString]) {
-            return YES;
+        if ([word hasPrefix:@"/"] && [word containsString:@"/"]) {
+            NSRange lastSlash = [word rangeOfString:@"/" options:NSBackwardsSearch];
+            if (lastSlash.location == NSNotFound || lastSlash.location == 0) continue;
+
+            NSString *pattern = [word substringWithRange:NSMakeRange(1, lastSlash.location - 1)];
+            NSString *optionsStr = [word substringFromIndex:lastSlash.location + 1];
+
+            NSRegularExpressionOptions options = 0;
+            if ([optionsStr containsString:@"i"]) options |= NSRegularExpressionCaseInsensitive;
+            if ([optionsStr containsString:@"m"]) options |= NSRegularExpressionAnchorsMatchLines;
+            if ([optionsStr containsString:@"s"]) options |= NSRegularExpressionDotMatchesLineSeparators;
+
+            NSError *error = nil;
+            NSRegularExpression *regex =
+                [NSRegularExpression regularExpressionWithPattern:pattern
+                                                          options:options
+                                                            error:&error];
+            if (!error && [regex firstMatchInString:text options:0 range:NSMakeRange(0, text.length)]) {
+                return YES;
+            }
+        } else {
+            if ([text.lowercaseString containsString:word.lowercaseString]) {
+                return YES;
+            }
         }
     }
     return NO;

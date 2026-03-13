@@ -42,7 +42,34 @@
 }
 
 - (BOOL)isChannelBlocked:(NSString *)channelName {
-    return [self.blockedChannelSet containsObject:channelName];
+    for (NSString *channel in self.blockedChannelSet) {
+        if ([channel hasPrefix:@"/"] && [channel containsString:@"/"]) {
+            NSRange lastSlash = [channel rangeOfString:@"/" options:NSBackwardsSearch];
+            if (lastSlash.location == NSNotFound || lastSlash.location == 0) continue;
+
+            NSString *pattern = [channel substringWithRange:NSMakeRange(1, lastSlash.location - 1)];
+            NSString *optionsStr = [channel substringFromIndex:lastSlash.location + 1];
+
+            NSRegularExpressionOptions options = 0;
+            if ([optionsStr containsString:@"i"]) options |= NSRegularExpressionCaseInsensitive;
+            if ([optionsStr containsString:@"m"]) options |= NSRegularExpressionAnchorsMatchLines;
+            if ([optionsStr containsString:@"s"]) options |= NSRegularExpressionDotMatchesLineSeparators;
+
+            NSError *error = nil;
+            NSRegularExpression *regex =
+                [NSRegularExpression regularExpressionWithPattern:pattern
+                                                          options:options
+                                                            error:&error];
+            if (!error && [regex firstMatchInString:channelName options:0 range:NSMakeRange(0, channelName.length)]) {
+                return YES;
+            }
+        } else {
+            if ([channelName isEqualToString:channel]) {
+                return YES;
+            }
+        }
+    }
+    return NO;
 }
 
 - (void)saveBlockedChannels {
