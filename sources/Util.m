@@ -113,9 +113,20 @@
     if ([node respondsToSelector:@selector(accessibilityLabel)]) {
         NSString *accessibilityLabel = [node accessibilityLabel];
         if (accessibilityLabel) {
-            if ([[WordManager sharedInstance] isWordBlocked:accessibilityLabel]) {
-                NSLog(@"[Gonerino] Blocking video because of blocked word: %@", accessibilityLabel);
-                return YES;
+            NSArray *components = [accessibilityLabel componentsSeparatedByString:@" - "];
+            if (components.count >= 4) {
+                NSString *title = components[0];
+                NSString *channelName = components[3];
+                
+                if ([[WordManager sharedInstance] isWordBlocked:title]) {
+                    NSLog(@"[Gonerino] Blocking video because of blocked word in title: %@", title);
+                    return YES;
+                }
+                
+                if ([[ChannelManager sharedInstance] isChannelBlocked:channelName]) {
+                    NSLog(@"[Gonerino] Blocking content from blocked channel: %@", channelName);
+                    return YES;
+                }
             }
         }
     }
@@ -124,11 +135,6 @@
         ASTextNode *textNode = (ASTextNode *)node;
         NSAttributedString *attributedText = textNode.attributedText;
         NSString *text = [attributedText string];
-
-        if ([[WordManager sharedInstance] isWordBlocked:text]) {
-            NSLog(@"[Gonerino] Blocking content with blocked word: %@", text);
-            return YES;
-        }
 
         if ([text containsString:@" · "]) {
             NSArray *components = [text componentsSeparatedByString:@" · "];
@@ -194,11 +200,6 @@
                               if ([[WordManager sharedInstance] isWordBlocked:videoTitle]) {
                                   isBlocked = YES;
                                   NSLog(@"[Gonerino] Blocking video with id %@: title contains blocked word", videoId);
-                              }
-                              if ([[WordManager sharedInstance] isWordBlocked:ownerName]) {
-                                  isBlocked = YES;
-                                  NSLog(@"[Gonerino] Blocking video with id %@: channel name contains blocked word",
-                                        videoId);
                               }
                           }];
         return isBlocked;
