@@ -545,6 +545,23 @@
                     }];
     [sectionItems addObject:manageWords];
 
+    YTSettingsSectionItem *blockPodcastRecommended = [%c(YTSettingsSectionItem)
+            switchItemWithTitle:@"Block 'Recommended Podcast'"
+               titleDescription:@"Remove 'Recommended Podcast'"
+        accessibilityIdentifier:nil
+                       switchOn:[[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPodcastRecommended"]
+                    switchBlock:^BOOL(YTSettingsCell *cell, BOOL enabled) {
+                        [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoPodcastRecommended"];
+                        YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
+                        [[%c(YTToastResponderEvent)
+                            eventWithMessage:[NSString stringWithFormat:@"'Recommended Podcast' %@",
+                                                                        enabled ? @"blocked" : @"unblocked"]
+                              firstResponder:settingsVC] send];
+                        return YES;
+                    }
+                  settingItemId:0];
+    [sectionItems addObject:blockPodcastRecommended];
+
     YTSettingsSectionItem *blockPeopleWatched = [%c(YTSettingsSectionItem)
             switchItemWithTitle:@"Block 'People also watched this video'"
                titleDescription:@"Remove 'People also watched' suggestions"
@@ -597,6 +614,8 @@
                             @([[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoEnabled"] == nil
                                   ? YES
                                   : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoEnabled"]);
+                        settings[@"blockPodcastRecommended"] =
+                            @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPodcastRecommended"]);
                         settings[@"blockPeopleWatched"] =
                             @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPeopleWatched"]);
                         settings[@"blockMightLike"] =
@@ -756,6 +775,12 @@
                 [[WordManager sharedInstance] setBlockedWords:words];
             }
 
+            NSNumber *podcastRecommended = settings[@"blockPodcastRecommended"];
+            if (podcastRecommended) {
+                [[NSUserDefaults standardUserDefaults] setBool:[podcastRecommended boolValue]
+                                                        forKey:@"GonerinoPodcastRecommended"];
+            }
+
             NSNumber *peopleWatched = settings[@"blockPeopleWatched"];
             if (peopleWatched) {
                 [[NSUserDefaults standardUserDefaults] setBool:[peopleWatched boolValue]
@@ -827,6 +852,8 @@
         settings[@"gonerinoEnabled"]  = @([[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoEnabled"] == nil
                                               ? YES
                                               : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoEnabled"]);
+        settings[@"blockPodcastRecommended"] =
+            @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPodcastRecommended"]);
         settings[@"blockPeopleWatched"] =
             @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPeopleWatched"]);
         settings[@"blockMightLike"] = @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoMightLike"]);

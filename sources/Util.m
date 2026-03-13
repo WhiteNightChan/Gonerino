@@ -109,27 +109,45 @@
     if (!isEnabled) {
         return NO;
     }
-    
-    if ([node respondsToSelector:@selector(accessibilityLabel)]) {
-        NSString *accessibilityLabel = [node accessibilityLabel];
-        if (accessibilityLabel) {
-            NSArray *components = [accessibilityLabel componentsSeparatedByString:@" - "];
+
+if ([node respondsToSelector:@selector(accessibilityLabel)]) {
+    NSString *accessibilityLabel = [node accessibilityLabel];
+    if (accessibilityLabel) {
+        NSArray *components = [accessibilityLabel componentsSeparatedByString:@" - "];
+        BOOL isPodcast = (components.count >= 3 && [components[0] isEqualToString:@"ポッドキャスト"]);
+        
+        if (isPodcast &&
+            [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPodcastRecommended"]) {
+            NSLog(@"[Gonerino] Blocking podcast section");
+            return YES;
+        }
+
+        NSString *title = nil;
+        NSString *channelName = nil;
+
+        if (isPodcast) {
+            if (components.count >= 3) {
+                title = components[1];
+                channelName = components[2];
+            }
+        } else {
             if (components.count >= 4) {
-                NSString *title = components[0];
-                NSString *channelName = components[3];
-                
-                if ([[WordManager sharedInstance] isWordBlocked:title]) {
-                    NSLog(@"[Gonerino] Blocking video because of blocked word in title: %@", title);
-                    return YES;
-                }
-                
-                if ([[ChannelManager sharedInstance] isChannelBlocked:channelName]) {
-                    NSLog(@"[Gonerino] Blocking content from blocked channel: %@", channelName);
-                    return YES;
-                }
+                title = components[0];
+                channelName = components[3];
             }
         }
+        
+            if (title && [[WordManager sharedInstance] isWordBlocked:title]) {
+                NSLog(@"[Gonerino] Blocking video because of blocked word in title: %@", title);
+                return YES;
+            }
+            
+        if (channelName && [[ChannelManager sharedInstance] isChannelBlocked:channelName]) {
+            NSLog(@"[Gonerino] Blocking content from blocked channel: %@", channelName);
+            return YES;
+        }
     }
+}
 
     if ([node isKindOfClass:NSClassFromString(@"ASTextNode")]) {
         ASTextNode *textNode = (ASTextNode *)node;
