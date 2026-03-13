@@ -38,9 +38,6 @@ on:
           - failure
           - skipped
           - success
-      dry_run:
-        description: 'Logs simulated changes, no deletions are performed'
-        required: false
 
 # schedule:
 #   - cron: '0 0 * * *'
@@ -67,4 +64,4 @@ jobs:
               && 'action_required,cancelled,failure,skipped'
               || github.event.inputs.delete_run_by_conclusion_pattern
             }}
-          dry_run: ${{ github.event.inputs.dry_run }}
+          dry_run: false
