@@ -1,7 +1,7 @@
 #import "WordManager.h"
 
 @interface WordManager ()
-@property(nonatomic, strong) NSMutableSet<NSString *> *blockedWordSet;
+@property(nonatomic, strong) NSMutableArray<NSString *> *blockedWordArray;
 @end
 
 @implementation WordManager
@@ -16,32 +16,34 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _blockedWordSet = [[[NSUserDefaults standardUserDefaults] arrayForKey:@"GonerinoBlockedWords"] mutableCopy]
-                              ?: [NSMutableSet set];
+        NSArray *saved =
+            [[NSUserDefaults standardUserDefaults] arrayForKey:@"GonerinoBlockedWords"];
+        _blockedWordArray =
+            saved ? [saved mutableCopy] : [NSMutableArray array];
     }
     return self;
 }
 
 - (NSArray<NSString *> *)blockedWords {
-    return [self.blockedWordSet allObjects];
+    return [self.blockedWordArray copy];
 }
 
 - (void)addBlockedWord:(NSString *)word {
-    if (word.length > 0) {
-        [self.blockedWordSet addObject:word];
+    if (word.length > 0 && ![self.blockedWordArray containsObject:word]) {
+        [self.blockedWordArray addObject:word];
         [self saveBlockedWords];
     }
 }
 
 - (void)removeBlockedWord:(NSString *)word {
     if (word) {
-        [self.blockedWordSet removeObject:word];
+        [self.blockedWordArray removeObject:word];
         [self saveBlockedWords];
     }
 }
 
 - (BOOL)isWordBlocked:(NSString *)text {
-    for (NSString *word in self.blockedWordSet) {
+    for (NSString *word in self.blockedWordArray) {
         if ([word hasPrefix:@"/"] && [word containsString:@"/"]) {
             NSRange lastSlash = [word rangeOfString:@"/" options:NSBackwardsSearch];
             if (lastSlash.location == NSNotFound || lastSlash.location == 0) continue;
@@ -72,12 +74,12 @@
 }
 
 - (void)saveBlockedWords {
-    [[NSUserDefaults standardUserDefaults] setObject:[self.blockedWordSet allObjects] forKey:@"GonerinoBlockedWords"];
-    [[NSUserDefaults standardUserDefaults] synchronize];
+    [[NSUserDefaults standardUserDefaults] setObject:self.blockedWordArray
+                                              forKey:@"GonerinoBlockedWords"];
 }
 
 - (void)setBlockedWords:(NSArray<NSString *> *)words {
-    self.blockedWordSet = [NSMutableSet setWithArray:words];
+    self.blockedWordArray = [words mutableCopy];
     [self saveBlockedWords];
 }
 
