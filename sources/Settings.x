@@ -137,16 +137,59 @@
                                                         YTSettingsViewController *settingsVC =
                                                             [self valueForKey:@"_settingsViewControllerDelegate"];
                                                         UIAlertController *alertController = [UIAlertController
-                                                            alertControllerWithTitle:@"Delete Channel"
+                                                            alertControllerWithTitle:@"Edit Channel"
                                                                              message:[NSString
                                                                                          stringWithFormat:@"Are you "
                                                                                                           @"sure "
                                                                                                           @"you "
                                                                                                           @"want to "
-                                                                                                          @"delete "
+                                                                                                          @"edit "
                                                                                                           @"'%@'?",
                                                                                                           channelName]
                                                                       preferredStyle:UIAlertControllerStyleAlert];
+
+                                                        [alertController addAction:
+                                                            [UIAlertAction actionWithTitle:@"Edit"
+                                                                                     style:UIAlertActionStyleDefault
+                                                                                   handler:^(UIAlertAction *action) {
+
+                                                                UIAlertController *editController =
+                                                                    [UIAlertController alertControllerWithTitle:@"Edit Channel"
+                                                                                                        message:nil
+                                                                                                 preferredStyle:UIAlertControllerStyleAlert];
+
+                                                                [editController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+                                                                    textField.text = channelName;
+                                                                }];
+
+                                                                [editController addAction:
+                                                                    [UIAlertAction actionWithTitle:@"Save"
+                                                                                             style:UIAlertActionStyleDefault
+                                                                                           handler:^(UIAlertAction *action) {
+
+                                                                        NSString *newName = editController.textFields.firstObject.text;
+
+                                                                        if (newName.length > 0) {
+                                                                            NSMutableArray *channels =
+                                                                                [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
+                                                                            NSUInteger index = [channels indexOfObject:channelName];
+                                                                            if (index != NSNotFound) {
+                                                                                channels[index] = newName;
+                                                                                [[ChannelManager sharedInstance] setBlockedChannels:channels];
+                                                                            }
+                                                                            [self reloadGonerinoSection];
+                                                                        }
+                                                                    }]];
+
+                                                                [editController addAction:
+                                                                    [UIAlertAction actionWithTitle:@"Cancel"
+                                                                                             style:UIAlertActionStyleCancel
+                                                                                           handler:nil]];
+
+                                                                [settingsVC presentViewController:editController
+                                                                                         animated:YES
+                                                                                       completion:nil];
+                                                            }]];
 
                                                         [alertController
                                                             addAction:
@@ -404,6 +447,49 @@
                                                                                              @"to delete '%@'?",
                                                                                              word]
                                                                       preferredStyle:UIAlertControllerStyleAlert];
+
+                                                        [alertController addAction:
+                                                            [UIAlertAction actionWithTitle:@"Edit"
+                                                                                     style:UIAlertActionStyleDefault
+                                                                                   handler:^(UIAlertAction *action) {
+
+                                                                UIAlertController *editController =
+                                                                    [UIAlertController alertControllerWithTitle:@"Edit Word"
+                                                                                                        message:nil
+                                                                                                 preferredStyle:UIAlertControllerStyleAlert];
+
+                                                                [editController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+                                                                    textField.text = word;
+                                                                }];
+
+                                                                [editController addAction:
+                                                                    [UIAlertAction actionWithTitle:@"Save"
+                                                                                             style:UIAlertActionStyleDefault
+                                                                                           handler:^(UIAlertAction *action) {
+
+                                                                        NSString *newWord = editController.textFields.firstObject.text;
+
+                                                                        if (newWord.length > 0) {
+                                                                            NSMutableArray *words =
+                                                                                [[[WordManager sharedInstance] blockedWords] mutableCopy];
+                                                                            NSUInteger index = [words indexOfObject:word];
+                                                                            if (index != NSNotFound) {
+                                                                                words[index] = newWord;
+                                                                                [[WordManager sharedInstance] setBlockedWords:words];
+                                                                            }
+                                                                            [self reloadGonerinoSection];
+                                                                        }
+                                                                    }]];
+
+                                                                [editController addAction:
+                                                                    [UIAlertAction actionWithTitle:@"Cancel"
+                                                                                             style:UIAlertActionStyleCancel
+                                                                                           handler:nil]];
+
+                                                                [settingsVC presentViewController:editController
+                                                                                         animated:YES
+                                                                                       completion:nil];
+                                                            }]];
 
                                                         [alertController
                                                             addAction:
