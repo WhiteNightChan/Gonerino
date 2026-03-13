@@ -60,6 +60,9 @@ static BOOL isImportOperation = NO;
 - (void)updateChannelManagementSection:(nonnull YTSettingsViewController *)viewController;
 - (nullable UITableView *)findTableViewInView:(nonnull UIView *)view;
 - (void)reloadGonerinoSection;
+- (void)presentEditAlertWithTitle:(NSString *)title
+                      initialText:(NSString *)text
+                       saveBlock:(void (^)(NSString *newText))saveBlock;
 @end
 
 NS_ASSUME_NONNULL_END
