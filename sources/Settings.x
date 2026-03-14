@@ -24,18 +24,19 @@ static void gonerinoFeedback(YTSettingsViewController *settingsVC, NSString *mes
 }
 
 typedef struct {
-    NSString *title;
+    NSString *pickerTitle;
+    NSString *rowDescription;
     NSString *addTitle;
-    NSString *deleteTitle;
     NSString *editTitle;
+    NSString *deleteTitle;
     NSString *addDescription;
-    NSString *inputDescription;
+    NSString *editDescription;
     NSString *placeholder;
 } GonerinoPickerConfig;
 
 // Shared picker helper extracted from the original
 // Manage Channels / Manage Words implementations
-static void openPicker(
+static void presentListManager(
     YTSettingsSectionItemManager *self,
     GonerinoPickerConfig config,
     NSArray *items,
@@ -50,40 +51,21 @@ static void openPicker(
 
     [rows addObject:[%c(YTSettingsSectionItem)
         itemWithTitle:config.addTitle
-        titleDescription:config.addDescription
+        titleDescription:config.rowDescription
         accessibilityIdentifier:nil
         detailTextBlock:nil
         selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
-
-        UIAlertController *alert =
-        [UIAlertController alertControllerWithTitle:config.addTitle
-                                            message:config.inputDescription
-                                     preferredStyle:UIAlertControllerStyleAlert];
-
-        [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-            textField.placeholder = config.placeholder;
-        }];
-
-        [alert addAction:[UIAlertAction actionWithTitle:@"Add"
-                                                  style:UIAlertActionStyleDefault
-                                                handler:^(UIAlertAction *a) {
-
-            NSString *text = alert.textFields.firstObject.text;
-
+        [self presentTextInputAlertWithTitle:config.addTitle
+                                     message:config.addDescription
+                                 placeholder:config.placeholder
+                                 initialText:@""
+                                   saveBlock:^(NSString *text) {
             if (text.length > 0) {
                 addBlock(text);
                 gonerinoFeedback(settingsVC, [NSString stringWithFormat:@"Added %@", text]);
                 [self reloadGonerinoSection];
             }
-
-        }]];
-
-        [alert addAction:[UIAlertAction actionWithTitle:@"Cancel"
-                                                  style:UIAlertActionStyleCancel
-                                                handler:nil]];
-
-        [settingsVC presentViewController:alert animated:YES completion:nil];
-
+        }];
         return YES;
     }]];
 
@@ -105,9 +87,11 @@ static void openPicker(
                                                       style:UIAlertActionStyleDefault
                                                     handler:^(UIAlertAction *a) {
 
-                [self presentEditAlertWithTitle:config.editTitle
-                                     initialText:item
-                                      saveBlock:^(NSString *newText) {
+                [self presentTextInputAlertWithTitle:config.editTitle
+                                             message:config.editDescription
+                                         placeholder:nil
+                                         initialText:item
+                                           saveBlock:^(NSString *newText) {
 
                     editBlock(item,newText);
                     gonerinoFeedback(settingsVC, [NSString stringWithFormat:@"Edited %@ → %@", item, newText]);
@@ -137,7 +121,7 @@ static void openPicker(
 
     YTSettingsPickerViewController *picker =
     [[%c(YTSettingsPickerViewController) alloc]
-        initWithNavTitle:config.title
+        initWithNavTitle:config.pickerTitle
         pickerSectionTitle:nil
         rows:rows
         selectedItemIndex:NSNotFound
@@ -175,7 +159,7 @@ static void openPicker(
                   settingItemId:0];
     [sectionItems addObject:showButtonToggle];
 
-    // picker logic moved to openPicker()
+    // picker logic moved to presentListManager()
     NSUInteger channelCount               = [[ChannelManager sharedInstance] blockedChannels].count;
     YTSettingsSectionItem *manageChannels = [%c(YTSettingsSectionItem)
                   itemWithTitle:@"Manage Channels"
@@ -185,15 +169,16 @@ static void openPicker(
                 detailTextBlock:nil
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
                         GonerinoPickerConfig config = {
-                            .title = @"Manage Channels",
+                            .pickerTitle = @"Manage Channels",
+                            .rowDescription = @"Block a new channel",
                             .addTitle = @"Add Channel",
-                            .deleteTitle = @"Delete Channel",
                             .editTitle = @"Edit Channel",
-                            .addDescription = @"Block a new channel",
-                            .inputDescription = @"Enter the channel name to block",
+                            .deleteTitle = @"Delete Channel",
+                            .addDescription = @"Enter the channel name to block",
+                            .editDescription = @"Edit the channel name to block",
                             .placeholder = @"Channel Name"
                         };
-                        openPicker(
+                        presentListManager(
                             self,
                             config,
                             [[ChannelManager sharedInstance] blockedChannels],
@@ -319,7 +304,7 @@ static void openPicker(
                     }];
     [sectionItems addObject:manageVideos];
 
-    // picker logic moved to openPicker()
+    // picker logic moved to presentListManager()
     NSUInteger wordCount               = [[WordManager sharedInstance] blockedWords].count;
     YTSettingsSectionItem *manageWords = [%c(YTSettingsSectionItem)
                   itemWithTitle:@"Manage Words"
@@ -329,15 +314,16 @@ static void openPicker(
                 detailTextBlock:nil
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
                         GonerinoPickerConfig config = {
-                            .title = @"Manage Words",
+                            .pickerTitle = @"Manage Words",
+                            .rowDescription = @"Block a new word or phrase",
                             .addTitle = @"Add Word",
                             .deleteTitle = @"Delete Word",
                             .editTitle = @"Edit Word",
-                            .addDescription = @"Block a new word or phrase",
-                            .inputDescription = @"Enter a word or phrase to block",
+                            .addDescription = @"Enter a word or phrase to block",
+                            .editDescription = @"Edit the word or phrase to block",
                             .placeholder = @"Word or phrase"
                         };
-                        openPicker(
+                        presentListManager(
                             self,
                             config,
                             [[WordManager sharedInstance] blockedWords],
@@ -676,24 +662,41 @@ replacementText:(NSString *)text {
 }
 
 %new
-- (void)presentEditAlertWithTitle:(NSString *)title
-                       initialText:(NSString *)text
-                        saveBlock:(void (^)(NSString *newText))saveBlock {
+- (void)textViewDidBeginEditing:(UITextView *)textView {
+    if (textView.textColor == [UIColor secondaryLabelColor]) {
+        textView.text = @"";
+        textView.textColor = [UIColor labelColor];
+    }
+}
+
+%new
+- (void)presentTextInputAlertWithTitle:(NSString *)title
+                               message:(NSString *)message
+                           placeholder:(NSString *)placeholder
+                           initialText:(NSString *)text
+                             saveBlock:(void (^)(NSString *newText))saveBlock {
 
     YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
 
-    UIAlertController *editController =
+    NSString *spacer = @"\n\n\n\n\n\n\n\n\n\n";
+    NSString *alertMessage = [NSString stringWithFormat:@"%@%@", message, spacer];
+    UIAlertController *textInputAlert =
         [UIAlertController alertControllerWithTitle:title
-                                            message:@"\n\n\n\n\n\n\n\n\n\n"
+                                            message:alertMessage
                                      preferredStyle:UIAlertControllerStyleAlert];
 
     UIFont *font = [UIFont systemFontOfSize:14];
     CGFloat height = font.lineHeight * 9 + 12;
 
     UITextView *textView =
-        [[UITextView alloc] initWithFrame:CGRectMake(10, 58, 250, height)];
+    [[UITextView alloc] initWithFrame:CGRectMake(10, 70, 250, height)];
 
-    textView.text = text;
+    if (text.length > 0) {
+        textView.text = text;
+    } else {
+        textView.text = placeholder ?: @"";
+        textView.textColor = [UIColor secondaryLabelColor];
+    }
     textView.font = font;
     textView.textContainerInset = UIEdgeInsetsMake(8, 4, 8, 4);
     textView.returnKeyType = UIReturnKeyDone;
@@ -711,28 +714,28 @@ replacementText:(NSString *)text {
     textView.layer.borderWidth = 0.5;
     textView.layer.cornerRadius = 6;
 
-    [editController.view addSubview:textView];
+    [textInputAlert.view addSubview:textView];
 
-    [editController addAction:
+    [textInputAlert addAction:
         [UIAlertAction actionWithTitle:@"Save"
                                  style:UIAlertActionStyleDefault
                                handler:^(UIAlertAction *action) {
 
         NSString *newText = textView.text;
 
-        if (newText.length > 0) {
+        if (newText.length > 0 && ![newText isEqualToString:placeholder]) {
             saveBlock(newText);
             [self reloadGonerinoSection];
         }
 
     }]];
 
-    [editController addAction:
+    [textInputAlert addAction:
         [UIAlertAction actionWithTitle:@"Cancel"
                                  style:UIAlertActionStyleCancel
                                handler:nil]];
 
-    [settingsVC presentViewController:editController animated:YES completion:nil];
+    [settingsVC presentViewController:textInputAlert animated:YES completion:nil];
 }
 
 %end
