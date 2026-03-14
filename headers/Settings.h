@@ -55,14 +55,16 @@ static BOOL isImportOperation = NO;
            headerHidden:(BOOL)headerHidden;
 @end
 
-@interface YTSettingsSectionItemManager (Gonerino)<UIDocumentPickerDelegate>
+@interface YTSettingsSectionItemManager (Gonerino)<UIDocumentPickerDelegate, UITextViewDelegate>
 - (void)updateGonerinoSectionWithEntry:(nullable id)entry;
 - (void)updateChannelManagementSection:(nonnull YTSettingsViewController *)viewController;
 - (nullable UITableView *)findTableViewInView:(nonnull UIView *)view;
 - (void)reloadGonerinoSection;
-- (void)presentEditAlertWithTitle:(NSString *)title
-                      initialText:(NSString *)text
-                       saveBlock:(void (^)(NSString *newText))saveBlock;
+- (void)presentTextInputAlertWithTitle:(NSString *)title
+                               message:(nullable NSString *)message
+                           placeholder:(nullable NSString *)placeholder
+                           initialText:(NSString *)text
+                             saveBlock:(void (^)(NSString *newText))saveBlock;
 @end
 
 NS_ASSUME_NONNULL_END
