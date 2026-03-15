@@ -35,9 +35,9 @@
 
     self.navigationItem.leftBarButtonItems = @[space, backButton];
 
-    UIView *customTitleView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 120, 44)];
+    UIView *customTitleView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 150, 44)];
 
-    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 0, 120, 44)];
+    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(25, 0, 150, 44)];
     titleLabel.text = self.titleText;
     titleLabel.textColor = [UIColor whiteColor];
     titleLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightMedium];
@@ -48,7 +48,6 @@
 
     self.navigationItem.titleView = customTitleView;
 }
-
 - (void)goBack {
     [self.navigationController popViewControllerAnimated:YES];
 }
