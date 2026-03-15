@@ -12,7 +12,11 @@
 
     self.navigationItem.hidesBackButton = YES;
 
-    UIImage *arrow = [[UIImage systemImageNamed:@"chevron.left"]
+    UIImageSymbolConfiguration *config = 
+        [UIImageSymbolConfiguration configurationWithPointSize:18.5 weight:UIImageSymbolWeightLight];
+
+    UIImage *arrow = [[UIImage systemImageNamed:@"chevron.left"
+                               withConfiguration:config]
                       imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 
     UIBarButtonItem *backButton =
