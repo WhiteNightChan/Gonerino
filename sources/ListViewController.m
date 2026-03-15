@@ -34,6 +34,15 @@
     space.width = 10;
 
     self.navigationItem.leftBarButtonItems = @[space, backButton];
+
+    UILabel *titleLabel = [[UILabel alloc] init];
+    titleLabel.text = self.titleText;
+    titleLabel.textColor = [UIColor whiteColor];
+    titleLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightMedium];
+
+    titleLabel.textAlignment = NSTextAlignmentLeft;
+
+    self.navigationItem.titleView = titleLabel;
 }
 
 - (void)goBack {
