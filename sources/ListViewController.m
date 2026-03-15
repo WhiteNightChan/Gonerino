@@ -9,6 +9,31 @@
 
     [self.tableView registerClass:[UITableViewCell class]
            forCellReuseIdentifier:@"Cell"];
+
+    self.navigationItem.hidesBackButton = YES;
+
+    UIImage *arrow = [[UIImage systemImageNamed:@"chevron.left"]
+                      imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+
+    UIBarButtonItem *backButton =
+        [[UIBarButtonItem alloc] initWithImage:arrow
+                                         style:UIBarButtonItemStylePlain
+                                        target:self
+                                        action:@selector(goBack)];
+
+    backButton.tintColor = [UIColor whiteColor];
+
+    UIBarButtonItem *space =
+        [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace
+                                                      target:nil
+                                                      action:nil];
+    space.width = 10;
+
+    self.navigationItem.leftBarButtonItems = @[space, backButton];
+}
+
+- (void)goBack {
+    [self.navigationController popViewControllerAnimated:YES];
 }
 
 #pragma mark - Table Data
@@ -27,6 +52,10 @@
                                     forIndexPath:indexPath];
 
     cell.textLabel.text = self.items[indexPath.row];
+    cell.selectionStyle = UITableViewCellSelectionStyleNone;
+
+    cell.textLabel.numberOfLines = 0;
+    cell.textLabel.lineBreakMode = NSLineBreakByWordWrapping;
 
     return cell;
 }
