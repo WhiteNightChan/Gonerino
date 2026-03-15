@@ -34,18 +34,6 @@
     space.width = 10;
 
     self.navigationItem.leftBarButtonItems = @[space, backButton];
-
-    UIView *customTitleView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 200, 44)];
-
-    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(30, 0, 200, 44)];
-    titleLabel.text = self.titleText;
-    titleLabel.textColor = [UIColor whiteColor];
-    titleLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightMedium];
-
-    titleLabel.textAlignment = NSTextAlignmentLeft;
-
-    [customTitleView addSubview:titleLabel];
-    self.navigationItem.titleView = customTitleView;
 }
 
 - (void)goBack {
