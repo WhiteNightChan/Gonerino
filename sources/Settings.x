@@ -1,4 +1,5 @@
 #import "Settings.h"
+#import "ListViewController.h"
 #import "Util.h"
 
 %hook YTAppSettingsPresentationData
@@ -15,14 +16,6 @@
 
 %end
 
-static void gonerinoFeedback(YTSettingsViewController *settingsVC, NSString *message) {
-    UIImpactFeedbackGenerator *generator = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleMedium];
-    [generator prepare];
-    [generator impactOccurred];
-    
-    [[%c(YTToastResponderEvent) eventWithMessage:message firstResponder:settingsVC] send];
-}
-
 typedef struct {
     NSString *pickerTitle;
     NSString *rowDescription;
@@ -33,102 +26,6 @@ typedef struct {
     NSString *editDescription;
     NSString *placeholder;
 } GonerinoPickerConfig;
-
-// Shared picker helper extracted from the original
-// Manage Channels / Manage Words implementations
-static void presentListManager(
-    YTSettingsSectionItemManager *self,
-    GonerinoPickerConfig config,
-    NSArray *items,
-    void (^addBlock)(NSString *text),
-    void (^deleteBlock)(NSString *text),
-    void (^editBlock)(NSString *oldText, NSString *newText)
-) {
-    YTSettingsViewController *settingsVC =
-        [self valueForKey:@"_settingsViewControllerDelegate"];
-
-    NSMutableArray *rows = [NSMutableArray array];
-
-    [rows addObject:[%c(YTSettingsSectionItem)
-        itemWithTitle:config.addTitle
-        titleDescription:config.rowDescription
-        accessibilityIdentifier:nil
-        detailTextBlock:nil
-        selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
-        [self presentTextInputAlertWithTitle:config.addTitle
-                                     message:config.addDescription
-                                 placeholder:config.placeholder
-                                 initialText:@""
-                                   saveBlock:^(NSString *text) {
-            if (text.length > 0) {
-                addBlock(text);
-                gonerinoFeedback(settingsVC, [NSString stringWithFormat:@"Added %@", text]);
-                [self reloadGonerinoSection];
-            }
-        }];
-        return YES;
-    }]];
-
-    for (NSString *item in items) {
-
-        [rows addObject:[%c(YTSettingsSectionItem)
-            itemWithTitle:item
-            titleDescription:nil
-            accessibilityIdentifier:nil
-            detailTextBlock:nil
-            selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
-
-            UIAlertController *alert =
-            [UIAlertController alertControllerWithTitle:config.deleteTitle
-                                                message:[NSString stringWithFormat:@"Are you sure you want to delete '%@'?",item]
-                                         preferredStyle:UIAlertControllerStyleAlert];
-
-            [alert addAction:[UIAlertAction actionWithTitle:@"Edit"
-                                                      style:UIAlertActionStyleDefault
-                                                    handler:^(UIAlertAction *a) {
-
-                [self presentTextInputAlertWithTitle:config.editTitle
-                                             message:config.editDescription
-                                         placeholder:nil
-                                         initialText:item
-                                           saveBlock:^(NSString *newText) {
-
-                    editBlock(item,newText);
-                    gonerinoFeedback(settingsVC, [NSString stringWithFormat:@"Edited %@ → %@", item, newText]);
-                }];
-
-            }]];
-
-            [alert addAction:[UIAlertAction actionWithTitle:@"Delete"
-                                                      style:UIAlertActionStyleDestructive
-                                                    handler:^(UIAlertAction *a) {
-
-                deleteBlock(item);
-                gonerinoFeedback(settingsVC, [NSString stringWithFormat:@"Deleted %@", item]);
-                [self reloadGonerinoSection];
-
-            }]];
-
-            [alert addAction:[UIAlertAction actionWithTitle:@"Cancel"
-                                                      style:UIAlertActionStyleCancel
-                                                    handler:nil]];
-
-            [settingsVC presentViewController:alert animated:YES completion:nil];
-
-            return YES;
-        }]];
-    }
-
-    YTSettingsPickerViewController *picker =
-    [[%c(YTSettingsPickerViewController) alloc]
-        initWithNavTitle:config.pickerTitle
-        pickerSectionTitle:nil
-        rows:rows
-        selectedItemIndex:NSNotFound
-        parentResponder:[self parentResponder]];
-
-    [settingsVC.navigationController pushViewController:picker animated:YES];
-}
 
 %hook YTSettingsSectionItemManager
 
@@ -159,7 +56,7 @@ static void presentListManager(
                   settingItemId:0];
     [sectionItems addObject:showButtonToggle];
 
-    // picker logic moved to presentListManager()
+    // picker logic WIP
     NSUInteger channelCount               = [[ChannelManager sharedInstance] blockedChannels].count;
     YTSettingsSectionItem *manageChannels = [%c(YTSettingsSectionItem)
                   itemWithTitle:@"Manage Channels"
@@ -168,35 +65,17 @@ static void presentListManager(
         accessibilityIdentifier:nil
                 detailTextBlock:nil
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
-                        GonerinoPickerConfig config = {
-                            .pickerTitle = @"Manage Channels",
-                            .rowDescription = @"Block a new channel",
-                            .addTitle = @"Add Channel",
-                            .editTitle = @"Edit Channel",
-                            .deleteTitle = @"Delete Channel",
-                            .addDescription = @"Enter the channel name to block",
-                            .editDescription = @"Edit the channel name to block",
-                            .placeholder = @"Channel Name"
-                        };
-                        presentListManager(
-                            self,
-                            config,
-                            [[ChannelManager sharedInstance] blockedChannels],
-                            ^(NSString *text) {
-                                [[ChannelManager sharedInstance] addBlockedChannel:text];
-                            },
-                            ^(NSString *text) {
-                                [[ChannelManager sharedInstance] removeBlockedChannel:text];
-                            },
-                            ^(NSString *oldText, NSString *newText) {
-                                NSMutableArray *channels =
-                                    [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
-                                NSUInteger index = [channels indexOfObject:oldText];
-                                if (index != NSNotFound) {
-                                    channels[index] = newText;
-                                    [[ChannelManager sharedInstance] setBlockedChannels:channels];
-                                }
-                            });
+
+                        ListViewController *vc = [ListViewController new];
+
+                        vc.titleText = @"Manage Channels";
+                        vc.items = [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
+
+                        YTSettingsViewController *delegate =
+                        [self valueForKey:@"_settingsViewControllerDelegate"];
+
+                        [delegate.navigationController pushViewController:vc animated:YES];
+
                         return YES;
                     }];
 
@@ -304,7 +183,7 @@ static void presentListManager(
                     }];
     [sectionItems addObject:manageVideos];
 
-    // picker logic moved to presentListManager()
+    // picker logic WIP
     NSUInteger wordCount               = [[WordManager sharedInstance] blockedWords].count;
     YTSettingsSectionItem *manageWords = [%c(YTSettingsSectionItem)
                   itemWithTitle:@"Manage Words"
@@ -313,37 +192,17 @@ static void presentListManager(
         accessibilityIdentifier:nil
                 detailTextBlock:nil
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
-                        GonerinoPickerConfig config = {
-                            .pickerTitle = @"Manage Words",
-                            .rowDescription = @"Block a new word or phrase",
-                            .addTitle = @"Add Word",
-                            .deleteTitle = @"Delete Word",
-                            .editTitle = @"Edit Word",
-                            .addDescription = @"Enter a word or phrase to block",
-                            .editDescription = @"Edit the word or phrase to block",
-                            .placeholder = @"Word or phrase"
-                        };
-                        presentListManager(
-                            self,
-                            config,
-                            [[WordManager sharedInstance] blockedWords],
-                            ^(NSString *text) {
-                                [[WordManager sharedInstance] addBlockedWord:text];
-                            },
-                            ^(NSString *text) {
-                                [[WordManager sharedInstance] removeBlockedWord:text];
-                            },
-                            ^(NSString *oldText, NSString *newText) {
-                                NSMutableArray *words =
-                                    [[[WordManager sharedInstance] blockedWords] mutableCopy];
 
-                                NSUInteger index = [words indexOfObject:oldText];
+                        ListViewController *vc = [ListViewController new];
 
-                                if (index != NSNotFound) {
-                                    words[index] = newText;
-                                    [[WordManager sharedInstance] setBlockedWords:words];
-                                }
-                            });
+                        vc.titleText = @"Manage Words";
+                        vc.items = [[[WordManager sharedInstance] blockedWords] mutableCopy];
+
+                        YTSettingsViewController *delegate =
+                        [self valueForKey:@"_settingsViewControllerDelegate"];
+
+                        [delegate.navigationController pushViewController:vc animated:YES];
+
                         return YES;
                     }];
 
