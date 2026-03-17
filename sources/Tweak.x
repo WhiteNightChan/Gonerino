@@ -1,4 +1,5 @@
 #import "Tweak.h"
+#import "ToastHelper.h"
 
 %hook YTAsyncCollectionView
 
@@ -107,13 +108,9 @@
                                                             if (ownerName) {
                                                                 [[ChannelManager sharedInstance]
                                                                     addBlockedChannel:ownerName];
-                                                                UIViewController *viewController =
-                                                                    (UIViewController *)strongSelf;
-                                                                [[%c(YTToastResponderEvent)
-                                                                    eventWithMessage:[NSString
-                                                                                         stringWithFormat:@"Blocked %@",
-                                                                                                          ownerName]
-                                                                      firstResponder:viewController] send];
+                                                                GonerinoShowToast(
+                                                                    [NSString stringWithFormat:@"Blocked \"%@\"",
+                                                                                               ownerName]);
                                                             }
                                                         }];
                                     break;
@@ -146,13 +143,9 @@
                                                               [[VideoManager sharedInstance] addBlockedVideo:videoId
                                                                                                        title:videoTitle
                                                                                                      channel:ownerName];
-                                                              UIViewController *viewController =
-                                                                  (UIViewController *)strongSelf;
-                                                              [[%c(YTToastResponderEvent)
-                                                                  eventWithMessage:
-                                                                      [NSString stringWithFormat:@"Blocked video: %@",
-                                                                                                 videoTitle ?: videoId]
-                                                                    firstResponder:viewController] send];
+                                                              GonerinoShowToast(
+                                                                  [NSString stringWithFormat:@"Blocked video: \"%@\"",
+                                                                                             videoTitle ?: videoId]);
                                                               if ([strongSelf respondsToSelector:@selector(dismiss)]) {
                                                                   [strongSelf dismiss];
                                                               }
@@ -289,18 +282,9 @@
     image = [%c(QTMIcon) tintImage:image color:tintColor];
     [self.gonerinoButton setImage:image forState:UIControlStateNormal];
 
-    UIViewController *topVC = [[UIApplication sharedApplication] delegate].window.rootViewController;
-    while (topVC.presentedViewController) {
-        topVC = topVC.presentedViewController;
-    }
-
-    if (topVC) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [[%c(YTToastResponderEvent)
-                eventWithMessage:[NSString stringWithFormat:@"Gonerino %@", newState ? @"enabled" : @"disabled"]
-                  firstResponder:topVC] send];
-        });
-    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        GonerinoShowToast([NSString stringWithFormat:@"Gonerino %@", newState ? @"enabled" : @"disabled"]);
+    });
 }
 
 %end

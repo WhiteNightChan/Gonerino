@@ -1,4 +1,9 @@
 #import "ListViewController.h"
+#import "ToastHelper.h"
+
+@interface ListViewController () <UITextViewDelegate>
+@property (nonatomic, copy) NSString *currentInputPlaceholder;
+@end
 
 @implementation ListViewController
 
@@ -99,8 +104,8 @@
 }
 
 - (void)addButtonTapped {
-    if (self.addButtonTappedBlock) {
-        self.addButtonTappedBlock();
+    if (self.addItemBlock) {
+        [self presentAddInputAlert];
     }
 }
 
@@ -168,6 +173,233 @@
         self.navigationItem.rightBarButtonItems = @[rightSpace, editButton, addButton];
         [self.navigationController setToolbarHidden:YES animated:YES];
     }
+}
+
+- (void)presentAddInputAlert {
+    NSString *title = @"Add Item";
+    NSString *message = @"Enter text";
+    NSString *placeholder = @"Text";
+
+    if ([self.itemType isEqualToString:@"channel"]) {
+        title = @"Add Channel";
+        message = @"Enter a channel name or regex rule";
+        placeholder = @"Channel name";
+    } else if ([self.itemType isEqualToString:@"word"]) {
+        title = @"Add Word";
+        message = @"Enter a blocked word or regex rule";
+        placeholder = @"Blocked word";
+    }
+
+    self.currentInputPlaceholder = placeholder;
+
+    NSString *spacer = @"\n\n\n\n\n\n\n\n\n\n";
+    NSString *alertMessage = [NSString stringWithFormat:@"%@%@", message, spacer];
+
+    UIAlertController *alert =
+        [UIAlertController alertControllerWithTitle:title
+                                            message:alertMessage
+                                     preferredStyle:UIAlertControllerStyleAlert];
+
+    UIFont *font = [UIFont systemFontOfSize:14];
+    CGFloat height = font.lineHeight * 9 + 12;
+
+    UITextView *textView =
+        [[UITextView alloc] initWithFrame:CGRectMake(10, 70, 250, height)];
+
+    textView.text = placeholder;
+    textView.textColor = [UIColor secondaryLabelColor];
+    textView.font = font;
+    textView.textContainerInset = UIEdgeInsetsMake(8, 4, 8, 4);
+    textView.returnKeyType = UIReturnKeyDone;
+    textView.delegate = self;
+
+    textView.autocorrectionType = UITextAutocorrectionTypeNo;
+    textView.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    textView.smartQuotesType = UITextSmartQuotesTypeNo;
+    textView.smartDashesType = UITextSmartDashesTypeNo;
+    textView.smartInsertDeleteType = UITextSmartInsertDeleteTypeNo;
+
+    textView.textContainer.lineBreakMode = NSLineBreakByCharWrapping;
+    textView.scrollEnabled = YES;
+
+    textView.layer.borderWidth = 0.5;
+    textView.layer.cornerRadius = 6;
+
+    [alert.view addSubview:textView];
+
+    __weak typeof(self) weakSelf = self;
+
+    [alert addAction:
+        [UIAlertAction actionWithTitle:@"Save"
+                                 style:UIAlertActionStyleDefault
+                               handler:^(UIAlertAction *action) {
+
+        NSString *rawText = textView.text;
+        NSString *newText = [rawText stringByTrimmingCharactersInSet:
+            [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+
+        BOOL isPlaceholderText =
+            textView.textColor == [UIColor secondaryLabelColor] ||
+            [rawText isEqualToString:weakSelf.currentInputPlaceholder];
+
+        // Empty or placeholder
+        if (newText.length == 0 || isPlaceholderText) {
+            return;
+        }
+
+        // Duplicate
+        if ([weakSelf.items containsObject:newText]) {
+            [weakSelf showToastWithMessage:
+                [NSString stringWithFormat:@"Already exists: \"%@\"", newText]];
+            return;
+        }
+
+        // Save normally
+        if (weakSelf.addItemBlock) {
+            weakSelf.addItemBlock(newText);
+        }
+
+        if (weakSelf.loadItemsBlock) {
+            NSArray *loaded = weakSelf.loadItemsBlock();
+            weakSelf.items = loaded ? [loaded mutableCopy] : [NSMutableArray array];
+        } else if (!weakSelf.items) {
+            weakSelf.items = [NSMutableArray array];
+        }
+
+        [weakSelf.tableView reloadData];
+    }]];
+
+    [alert addAction:
+        [UIAlertAction actionWithTitle:@"Cancel"
+                                 style:UIAlertActionStyleCancel
+                               handler:nil]];
+
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)presentEditInputAlertForIndex:(NSInteger)index
+                          currentText:(NSString *)currentText {
+    NSString *title = @"Edit Item";
+    NSString *message = @"Edit text";
+    NSString *placeholder = @"Text";
+
+    if ([self.itemType isEqualToString:@"channel"]) {
+        title = @"Edit Channel";
+        message = @"Edit the channel name or regex rule";
+        placeholder = @"Channel name";
+    } else if ([self.itemType isEqualToString:@"word"]) {
+        title = @"Edit Word";
+        message = @"Edit the blocked word or regex rule";
+        placeholder = @"Blocked word";
+    }
+
+    self.currentInputPlaceholder = placeholder;
+
+    NSString *spacer = @"\n\n\n\n\n\n\n\n\n\n";
+    NSString *alertMessage = [NSString stringWithFormat:@"%@%@", message, spacer];
+
+    UIAlertController *alert =
+        [UIAlertController alertControllerWithTitle:title
+                                            message:alertMessage
+                                     preferredStyle:UIAlertControllerStyleAlert];
+
+    UIFont *font = [UIFont systemFontOfSize:14];
+    CGFloat height = font.lineHeight * 9 + 12;
+
+    UITextView *textView =
+        [[UITextView alloc] initWithFrame:CGRectMake(10, 70, 250, height)];
+
+    if (currentText.length > 0) {
+        textView.text = currentText;
+        textView.textColor = [UIColor labelColor];
+    } else {
+        textView.text = placeholder;
+        textView.textColor = [UIColor secondaryLabelColor];
+    }
+
+    textView.font = font;
+    textView.textContainerInset = UIEdgeInsetsMake(8, 4, 8, 4);
+    textView.returnKeyType = UIReturnKeyDone;
+    textView.delegate = self;
+
+    textView.autocorrectionType = UITextAutocorrectionTypeNo;
+    textView.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    textView.smartQuotesType = UITextSmartQuotesTypeNo;
+    textView.smartDashesType = UITextSmartDashesTypeNo;
+    textView.smartInsertDeleteType = UITextSmartInsertDeleteTypeNo;
+
+    textView.textContainer.lineBreakMode = NSLineBreakByCharWrapping;
+    textView.scrollEnabled = YES;
+
+    textView.layer.borderWidth = 0.5;
+    textView.layer.cornerRadius = 6;
+
+    [alert.view addSubview:textView];
+
+    __weak typeof(self) weakSelf = self;
+
+    [alert addAction:
+        [UIAlertAction actionWithTitle:@"Save"
+                                 style:UIAlertActionStyleDefault
+                               handler:^(UIAlertAction *action) {
+
+        NSString *rawText = textView.text;
+        NSString *newText = [rawText stringByTrimmingCharactersInSet:
+            [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+
+        BOOL isPlaceholderText =
+            textView.textColor == [UIColor secondaryLabelColor] ||
+            [rawText isEqualToString:weakSelf.currentInputPlaceholder];
+
+        NSMutableArray *otherItems = [weakSelf.items mutableCopy];
+        if (!otherItems) {
+            otherItems = [NSMutableArray array];
+        }
+
+        if (index >= 0 && index < otherItems.count) {
+            [otherItems removeObjectAtIndex:index];
+        }
+
+        // Empty or placeholder
+        if (newText.length == 0 || isPlaceholderText) {
+            return;
+        }
+
+        // No changes
+        if ([newText isEqualToString:currentText]) {
+            [weakSelf showToastWithMessage:
+                [NSString stringWithFormat:@"No changes: \"%@\"", currentText]];
+            return;
+        }
+
+        // Duplicate
+        if ([otherItems containsObject:newText]) {
+            [weakSelf showToastWithMessage:
+                [NSString stringWithFormat:@"Already exists: \"%@\"", newText]];
+            return;
+        }
+
+        // Save normally
+        if (weakSelf.editItemBlock) {
+            weakSelf.editItemBlock(index, currentText, newText);
+        }
+
+        if (weakSelf.loadItemsBlock) {
+            NSArray *loaded = weakSelf.loadItemsBlock();
+            weakSelf.items = loaded ? [loaded mutableCopy] : [NSMutableArray array];
+        } else if (!weakSelf.items) {
+            weakSelf.items = [NSMutableArray array];
+        }
+
+        [weakSelf.tableView reloadData];
+    }]];
+
+    [alert addAction:
+        [UIAlertAction actionWithTitle:@"Cancel"
+                                 style:UIAlertActionStyleCancel
+                               handler:nil]];
+
+    [self presentViewController:alert animated:YES completion:nil];
 }
 
 #pragma mark - Table Data
@@ -352,9 +584,39 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
         return;
     }
 
-    if (self.editItemTappedBlock) {
-        self.editItemTappedBlock(index, self.items[index]);
+    if (self.editItemBlock) {
+        [self presentEditInputAlertForIndex:index currentText:self.items[index]];
     }
+}
+
+- (BOOL)textView:(UITextView *)textView
+shouldChangeTextInRange:(NSRange)range
+replacementText:(NSString *)text {
+
+    if ([text isEqualToString:@"\n"]) {
+        [textView resignFirstResponder];
+        return NO;
+    }
+
+    return YES;
+}
+
+- (void)textViewDidBeginEditing:(UITextView *)textView {
+    if (textView.textColor == [UIColor secondaryLabelColor]) {
+        textView.text = @"";
+        textView.textColor = [UIColor labelColor];
+    }
+}
+
+- (void)textViewDidEndEditing:(UITextView *)textView {
+    if (textView.text.length == 0 && self.currentInputPlaceholder.length > 0) {
+        textView.text = self.currentInputPlaceholder;
+        textView.textColor = [UIColor secondaryLabelColor];
+    }
+}
+
+- (void)showToastWithMessage:(NSString *)message {
+    GonerinoShowToast(message);
 }
 
 - (void)handleLongPress:(UILongPressGestureRecognizer *)gesture {
@@ -385,18 +647,8 @@ forRowAtIndexPath:(NSIndexPath *)indexPath {
 
     UIPasteboard.generalPasteboard.string = text;
 
-    // ここは簡易版（UI分離後に差し替え予定）
-    UIAlertController *alert =
-        [UIAlertController alertControllerWithTitle:nil
-                                            message:@"Copied"
-                                     preferredStyle:UIAlertControllerStyleAlert];
-
-    [self presentViewController:alert animated:YES completion:nil];
-
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.7 * NSEC_PER_SEC)),
-                   dispatch_get_main_queue(), ^{
-        [alert dismissViewControllerAnimated:YES completion:nil];
-    });
+    [self showToastWithMessage:
+        [NSString stringWithFormat:@"Copied \"%@\"", text]];
 }
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
