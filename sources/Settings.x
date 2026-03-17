@@ -1,5 +1,6 @@
 #import "Settings.h"
 #import "ListViewController.h"
+#import "ToastHelper.h"
 #import "Util.h"
 
 %hook YTAppSettingsPresentationData
@@ -73,7 +74,7 @@ typedef struct {
                         vc.removeItemBlock = ^(NSString *text) {
                             [[ChannelManager sharedInstance] removeBlockedChannel:text];
                             [self showGonerinoToastWithMessage:
-                                [NSString stringWithFormat:@"Deleted %@", text]];
+                                [NSString stringWithFormat:@"Deleted \"%@\"", text]];
                         };
                         vc.removeSelectedItemsBlock = ^(NSArray<NSString *> *texts) {
                             NSMutableArray *updatedChannels =
@@ -104,66 +105,29 @@ typedef struct {
                             [[ChannelManager sharedInstance] setBlockedChannels:updatedChannels];
                         };
 
-                        __weak ListViewController *weakVC = vc;
-                        vc.addButtonTappedBlock = ^{
-                            [self presentTextInputAlertWithTitle:@"Add Channel"
-                                                         message:@"Enter a channel name or regex rule"
-                                                     placeholder:@"Channel name"
-                                                     initialText:@""
-                                                       saveBlock:^(NSString *newText) {
-                                [[ChannelManager sharedInstance] addBlockedChannel:newText];
+                        vc.addItemBlock = ^(NSString *newText) {
+                            [[ChannelManager sharedInstance] addBlockedChannel:newText];
 
-                                [self showGonerinoToastWithMessage:
-                                    [NSString stringWithFormat:@"Added %@", newText]];
-
-                                ListViewController *strongVC = weakVC;
-                                if (!strongVC) return;
-
-                                if (strongVC.loadItemsBlock) {
-                                    NSArray *loadedItems = strongVC.loadItemsBlock();
-                                    strongVC.items = loadedItems ? [loadedItems mutableCopy] : [NSMutableArray array];
-                                } else if (!strongVC.items) {
-                                    strongVC.items = [NSMutableArray array];
-                                }
-
-                                [strongVC.tableView reloadData];
-                            }];
+                            [self showGonerinoToastWithMessage:
+                                [NSString stringWithFormat:@"Added \"%@\"", newText]];
                         };
 
-                        vc.editItemTappedBlock = ^(NSInteger index, NSString *currentText) {
-                            [self presentTextInputAlertWithTitle:@"Edit Channel"
-                                                         message:@"Edit the channel name or regex rule"
-                                                     placeholder:@"Channel name"
-                                                     initialText:currentText
-                                                       saveBlock:^(NSString *newText) {
-                                NSMutableArray<NSString *> *updatedChannels =
-                                    [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
-                                if (!updatedChannels) {
-                                    updatedChannels = [NSMutableArray array];
-                                }
+                        vc.editItemBlock = ^(NSInteger index, NSString *oldText, NSString *newText) {
+                            NSMutableArray<NSString *> *updatedChannels =
+                                [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
+                            if (!updatedChannels) {
+                                updatedChannels = [NSMutableArray array];
+                            }
 
-                                if (index < 0 || index >= updatedChannels.count) {
-                                    return;
-                                }
+                            if (index < 0 || index >= updatedChannels.count) {
+                                return;
+                            }
 
-                                updatedChannels[index] = newText;
-                                [[ChannelManager sharedInstance] setBlockedChannels:updatedChannels];
+                            updatedChannels[index] = newText;
+                            [[ChannelManager sharedInstance] setBlockedChannels:updatedChannels];
 
-                                [self showGonerinoToastWithMessage:
-                                    [NSString stringWithFormat:@"Edited %@", newText]];
-
-                                ListViewController *strongVC = weakVC;
-                                if (!strongVC) return;
-
-                                if (strongVC.loadItemsBlock) {
-                                    NSArray *loadedItems = strongVC.loadItemsBlock();
-                                    strongVC.items = loadedItems ? [loadedItems mutableCopy] : [NSMutableArray array];
-                                } else if (!strongVC.items) {
-                                    strongVC.items = [NSMutableArray array];
-                                }
-
-                                [strongVC.tableView reloadData];
-                            }];
+                            [self showGonerinoToastWithMessage:
+                                [NSString stringWithFormat:@"Edited \"%@\" → \"%@\"", oldText, newText]];
                         };
 
                         YTSettingsViewController *delegate =
@@ -291,7 +255,7 @@ typedef struct {
                         vc.removeItemBlock = ^(NSString *text) {
                             [[WordManager sharedInstance] removeBlockedWord:text];
                             [self showGonerinoToastWithMessage:
-                                [NSString stringWithFormat:@"Deleted %@", text]];
+                                [NSString stringWithFormat:@"Deleted \"%@\"", text]];
                         };
                         vc.removeSelectedItemsBlock = ^(NSArray<NSString *> *texts) {
                             NSMutableArray *updatedWords =
@@ -322,66 +286,29 @@ typedef struct {
                             [[WordManager sharedInstance] setBlockedWords:updatedWords];
                         };
 
-                        __weak ListViewController *weakVC = vc;
-                        vc.addButtonTappedBlock = ^{
-                            [self presentTextInputAlertWithTitle:@"Add Word"
-                                                         message:@"Enter a blocked word or regex rule"
-                                                     placeholder:@"Blocked word"
-                                                     initialText:@""
-                                                       saveBlock:^(NSString *newText) {
-                                [[WordManager sharedInstance] addBlockedWord:newText];
+                        vc.addItemBlock = ^(NSString *newText) {
+                            [[WordManager sharedInstance] addBlockedWord:newText];
 
-                                [self showGonerinoToastWithMessage:
-                                    [NSString stringWithFormat:@"Added %@", newText]];
-
-                                ListViewController *strongVC = weakVC;
-                                if (!strongVC) return;
-
-                                if (strongVC.loadItemsBlock) {
-                                    NSArray *loadedItems = strongVC.loadItemsBlock();
-                                    strongVC.items = loadedItems ? [loadedItems mutableCopy] : [NSMutableArray array];
-                                } else if (!strongVC.items) {
-                                    strongVC.items = [NSMutableArray array];
-                                }
-
-                                [strongVC.tableView reloadData];
-                            }];
+                            [self showGonerinoToastWithMessage:
+                                [NSString stringWithFormat:@"Added \"%@\"", newText]];
                         };
 
-                        vc.editItemTappedBlock = ^(NSInteger index, NSString *currentText) {
-                            [self presentTextInputAlertWithTitle:@"Edit Word"
-                                                         message:@"Edit the blocked word or regex rule"
-                                                     placeholder:@"Blocked word"
-                                                     initialText:currentText
-                                                       saveBlock:^(NSString *newText) {
-                                NSMutableArray<NSString *> *updatedWords =
-                                    [[[WordManager sharedInstance] blockedWords] mutableCopy];
-                                if (!updatedWords) {
-                                    updatedWords = [NSMutableArray array];
-                                }
+                        vc.editItemBlock = ^(NSInteger index, NSString *oldText, NSString *newText) {
+                            NSMutableArray<NSString *> *updatedWords =
+                                [[[WordManager sharedInstance] blockedWords] mutableCopy];
+                            if (!updatedWords) {
+                                updatedWords = [NSMutableArray array];
+                            }
 
-                                if (index < 0 || index >= updatedWords.count) {
-                                    return;
-                                }
+                            if (index < 0 || index >= updatedWords.count) {
+                                return;
+                            }
 
-                                updatedWords[index] = newText;
-                                [[WordManager sharedInstance] setBlockedWords:updatedWords];
+                            updatedWords[index] = newText;
+                            [[WordManager sharedInstance] setBlockedWords:updatedWords];
 
-                                [self showGonerinoToastWithMessage:
-                                    [NSString stringWithFormat:@"Edited %@", newText]];
-
-                                ListViewController *strongVC = weakVC;
-                                if (!strongVC) return;
-
-                                if (strongVC.loadItemsBlock) {
-                                    NSArray *loadedItems = strongVC.loadItemsBlock();
-                                    strongVC.items = loadedItems ? [loadedItems mutableCopy] : [NSMutableArray array];
-                                } else if (!strongVC.items) {
-                                    strongVC.items = [NSMutableArray array];
-                                }
-
-                                [strongVC.tableView reloadData];
-                            }];
+                            [self showGonerinoToastWithMessage:
+                                [NSString stringWithFormat:@"Edited \"%@\" → \"%@\"", oldText, newText]];
                         };
 
                         YTSettingsViewController *delegate =
@@ -681,8 +608,7 @@ typedef struct {
 
 %new
 - (void)showGonerinoToastWithMessage:(NSString *)message {
-    YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
-    [[%c(YTToastResponderEvent) eventWithMessage:message firstResponder:settingsVC] send];
+    GonerinoShowToast(message);
 }
 
 %new
@@ -692,96 +618,6 @@ typedef struct {
                                                    itemType,
                                                    count == 1 ? @"" : @"s"];
     [self showGonerinoToastWithMessage:message];
-}
-
-%new
-- (BOOL)textView:(UITextView *)textView
-shouldChangeTextInRange:(NSRange)range
-replacementText:(NSString *)text {
-
-    if ([text isEqualToString:@"\n"]) {
-        [textView resignFirstResponder];
-        return NO;
-    }
-
-    return YES;
-}
-
-%new
-- (void)textViewDidBeginEditing:(UITextView *)textView {
-    if (textView.textColor == [UIColor secondaryLabelColor]) {
-        textView.text = @"";
-        textView.textColor = [UIColor labelColor];
-    }
-}
-
-%new
-- (void)presentTextInputAlertWithTitle:(NSString *)title
-                               message:(NSString *)message
-                           placeholder:(NSString *)placeholder
-                           initialText:(NSString *)text
-                             saveBlock:(void (^)(NSString *newText))saveBlock {
-
-    YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
-
-    NSString *spacer = @"\n\n\n\n\n\n\n\n\n\n";
-    NSString *alertMessage = [NSString stringWithFormat:@"%@%@", message, spacer];
-    UIAlertController *textInputAlert =
-        [UIAlertController alertControllerWithTitle:title
-                                            message:alertMessage
-                                     preferredStyle:UIAlertControllerStyleAlert];
-
-    UIFont *font = [UIFont systemFontOfSize:14];
-    CGFloat height = font.lineHeight * 9 + 12;
-
-    UITextView *textView =
-    [[UITextView alloc] initWithFrame:CGRectMake(10, 70, 250, height)];
-
-    if (text.length > 0) {
-        textView.text = text;
-    } else {
-        textView.text = placeholder ?: @"";
-        textView.textColor = [UIColor secondaryLabelColor];
-    }
-    textView.font = font;
-    textView.textContainerInset = UIEdgeInsetsMake(8, 4, 8, 4);
-    textView.returnKeyType = UIReturnKeyDone;
-    textView.delegate = (id<UITextViewDelegate>)self;
-
-    textView.autocorrectionType = UITextAutocorrectionTypeNo;
-    textView.autocapitalizationType = UITextAutocapitalizationTypeNone;
-    textView.smartQuotesType = UITextSmartQuotesTypeNo;
-    textView.smartDashesType = UITextSmartDashesTypeNo;
-    textView.smartInsertDeleteType = UITextSmartInsertDeleteTypeNo;
-
-    textView.textContainer.lineBreakMode = NSLineBreakByCharWrapping;
-    textView.scrollEnabled = YES;
-
-    textView.layer.borderWidth = 0.5;
-    textView.layer.cornerRadius = 6;
-
-    [textInputAlert.view addSubview:textView];
-
-    [textInputAlert addAction:
-        [UIAlertAction actionWithTitle:@"Save"
-                                 style:UIAlertActionStyleDefault
-                               handler:^(UIAlertAction *action) {
-
-        NSString *newText = textView.text;
-
-        if (newText.length > 0 && ![newText isEqualToString:placeholder]) {
-            saveBlock(newText);
-            [self reloadGonerinoSection];
-        }
-
-    }]];
-
-    [textInputAlert addAction:
-        [UIAlertAction actionWithTitle:@"Cancel"
-                                 style:UIAlertActionStyleCancel
-                               handler:nil]];
-
-    [settingsVC presentViewController:textInputAlert animated:YES completion:nil];
 }
 
 %end

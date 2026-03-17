@@ -106,10 +106,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)dismiss;
 - (UIViewController *)findViewControllerForView:(UIView *)view;
 @end
-@interface YTToastResponderEvent : NSObject
-+ (instancetype)eventWithMessage:(NSString *)message firstResponder:(UIViewController *)responder;
-- (void)send;
-@end
 
 @interface YTSettingsSectionItem : NSObject
 + (instancetype)itemWithTitle:(NSString *)title

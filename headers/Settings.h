@@ -35,11 +35,6 @@ static const NSInteger GonerinoSection = 2002;
 
 static BOOL isImportOperation = NO;
 
-@interface YTToastResponderEvent : NSObject
-+ (instancetype)eventWithMessage:(NSString *)message firstResponder:(id)responder;
-- (void)send;
-@end
-
 @interface YTNavigationController : UINavigationController
 @end
 

@@ -10,7 +10,7 @@
 @property (nonatomic, copy) void (^removeItemBlock)(NSString *text);
 @property (nonatomic, copy) void (^removeSelectedItemsBlock)(NSArray<NSString *> *texts);
 @property (nonatomic, copy) void (^moveItemBlock)(NSInteger fromIndex, NSInteger toIndex);
-@property (nonatomic, copy) void (^addButtonTappedBlock)(void);
-@property (nonatomic, copy) void (^editItemTappedBlock)(NSInteger index, NSString *currentText);
+@property (nonatomic, copy) void (^addItemBlock)(NSString *text);
+@property (nonatomic, copy) void (^editItemBlock)(NSInteger index, NSString *oldText, NSString *newText);
 
 @end
