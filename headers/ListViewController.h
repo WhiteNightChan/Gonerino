@@ -4,5 +4,13 @@
 
 @property (nonatomic, strong) NSMutableArray *items;
 @property (nonatomic, strong) NSString *titleText;
+@property (nonatomic, copy) NSString *itemType;
+
+@property (nonatomic, copy) NSArray *(^loadItemsBlock)(void);
+@property (nonatomic, copy) void (^removeItemBlock)(NSString *text);
+@property (nonatomic, copy) void (^removeSelectedItemsBlock)(NSArray<NSString *> *texts);
+@property (nonatomic, copy) void (^moveItemBlock)(NSInteger fromIndex, NSInteger toIndex);
+@property (nonatomic, copy) void (^addButtonTappedBlock)(void);
+@property (nonatomic, copy) void (^editItemTappedBlock)(NSInteger index, NSString *currentText);
 
 @end
