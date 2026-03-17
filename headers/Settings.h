@@ -60,6 +60,8 @@ static BOOL isImportOperation = NO;
 - (void)updateChannelManagementSection:(nonnull YTSettingsViewController *)viewController;
 - (nullable UITableView *)findTableViewInView:(nonnull UIView *)view;
 - (void)reloadGonerinoSection;
+- (void)showGonerinoToastWithMessage:(NSString *)message;
+- (void)showMultipleDeleteToastForItemType:(NSString *)itemType count:(NSUInteger)count;
 - (void)presentTextInputAlertWithTitle:(NSString *)title
                                message:(nullable NSString *)message
                            placeholder:(nullable NSString *)placeholder

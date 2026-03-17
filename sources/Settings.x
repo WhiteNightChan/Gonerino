@@ -46,11 +46,8 @@ typedef struct {
                     switchBlock:^BOOL(YTSettingsCell *cell, BOOL enabled) {
                         [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoShowButton"];
                         [[NSUserDefaults standardUserDefaults] synchronize];
-                        YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
-                        [[%c(YTToastResponderEvent)
-                            eventWithMessage:[NSString
-                                                 stringWithFormat:@"Gonerino button %@", enabled ? @"shown" : @"hidden"]
-                              firstResponder:settingsVC] send];
+                        [self showGonerinoToastWithMessage:
+                            [NSString stringWithFormat:@"Gonerino button %@", enabled ? @"shown" : @"hidden"]];
                         return YES;
                     }
                   settingItemId:0];
@@ -69,7 +66,105 @@ typedef struct {
                         ListViewController *vc = [ListViewController new];
 
                         vc.titleText = @"Manage Channels";
-                        vc.items = [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
+                        vc.itemType = @"channel";
+                        vc.loadItemsBlock = ^NSArray *{
+                            return [[ChannelManager sharedInstance] blockedChannels];
+                        };
+                        vc.removeItemBlock = ^(NSString *text) {
+                            [[ChannelManager sharedInstance] removeBlockedChannel:text];
+                            [self showGonerinoToastWithMessage:
+                                [NSString stringWithFormat:@"Deleted %@", text]];
+                        };
+                        vc.removeSelectedItemsBlock = ^(NSArray<NSString *> *texts) {
+                            NSMutableArray *updatedChannels =
+                                [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
+                            if (!updatedChannels) {
+                                updatedChannels = [NSMutableArray array];
+                            }
+
+                            [updatedChannels removeObjectsInArray:texts];
+                            [[ChannelManager sharedInstance] setBlockedChannels:updatedChannels];
+                            [self showMultipleDeleteToastForItemType:@"channel" count:texts.count];
+                        };
+                        vc.moveItemBlock = ^(NSInteger fromIndex, NSInteger toIndex) {
+                            NSMutableArray *updatedChannels =
+                                [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
+                            if (!updatedChannels) return;
+
+                            if (fromIndex < 0 || toIndex < 0 ||
+                                fromIndex >= updatedChannels.count ||
+                                toIndex >= updatedChannels.count) {
+                                return;
+                            }
+
+                            NSString *item = updatedChannels[fromIndex];
+                            [updatedChannels removeObjectAtIndex:fromIndex];
+                            [updatedChannels insertObject:item atIndex:toIndex];
+
+                            [[ChannelManager sharedInstance] setBlockedChannels:updatedChannels];
+                        };
+
+                        __weak ListViewController *weakVC = vc;
+                        vc.addButtonTappedBlock = ^{
+                            [self presentTextInputAlertWithTitle:@"Add Channel"
+                                                         message:@"Enter a channel name or regex rule"
+                                                     placeholder:@"Channel name"
+                                                     initialText:@""
+                                                       saveBlock:^(NSString *newText) {
+                                [[ChannelManager sharedInstance] addBlockedChannel:newText];
+
+                                [self showGonerinoToastWithMessage:
+                                    [NSString stringWithFormat:@"Added %@", newText]];
+
+                                ListViewController *strongVC = weakVC;
+                                if (!strongVC) return;
+
+                                if (strongVC.loadItemsBlock) {
+                                    NSArray *loadedItems = strongVC.loadItemsBlock();
+                                    strongVC.items = loadedItems ? [loadedItems mutableCopy] : [NSMutableArray array];
+                                } else if (!strongVC.items) {
+                                    strongVC.items = [NSMutableArray array];
+                                }
+
+                                [strongVC.tableView reloadData];
+                            }];
+                        };
+
+                        vc.editItemTappedBlock = ^(NSInteger index, NSString *currentText) {
+                            [self presentTextInputAlertWithTitle:@"Edit Channel"
+                                                         message:@"Edit the channel name or regex rule"
+                                                     placeholder:@"Channel name"
+                                                     initialText:currentText
+                                                       saveBlock:^(NSString *newText) {
+                                NSMutableArray<NSString *> *updatedChannels =
+                                    [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
+                                if (!updatedChannels) {
+                                    updatedChannels = [NSMutableArray array];
+                                }
+
+                                if (index < 0 || index >= updatedChannels.count) {
+                                    return;
+                                }
+
+                                updatedChannels[index] = newText;
+                                [[ChannelManager sharedInstance] setBlockedChannels:updatedChannels];
+
+                                [self showGonerinoToastWithMessage:
+                                    [NSString stringWithFormat:@"Edited %@", newText]];
+
+                                ListViewController *strongVC = weakVC;
+                                if (!strongVC) return;
+
+                                if (strongVC.loadItemsBlock) {
+                                    NSArray *loadedItems = strongVC.loadItemsBlock();
+                                    strongVC.items = loadedItems ? [loadedItems mutableCopy] : [NSMutableArray array];
+                                } else if (!strongVC.items) {
+                                    strongVC.items = [NSMutableArray array];
+                                }
+
+                                [strongVC.tableView reloadData];
+                            }];
+                        };
 
                         YTSettingsViewController *delegate =
                         [self valueForKey:@"_settingsViewControllerDelegate"];
@@ -91,10 +186,7 @@ typedef struct {
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
                         NSArray *blockedVideos = [[VideoManager sharedInstance] blockedVideos];
                         if (blockedVideos.count == 0) {
-                            YTSettingsViewController *settingsVC =
-                                [self valueForKey:@"_settingsViewControllerDelegate"];
-                            [[%c(YTToastResponderEvent) eventWithMessage:@"No blocked videos"
-                                                                     firstResponder:settingsVC] send];
+                            [self showGonerinoToastWithMessage:@"No blocked videos"];
                             return YES;
                         }
 
@@ -145,13 +237,9 @@ typedef struct {
                                                                                 [generator prepare];
                                                                                 [generator impactOccurred];
 
-                                                                                [[%c(YTToastResponderEvent)
-                                                                                    eventWithMessage:
-                                                                                        [NSString
-                                                                                            stringWithFormat:
-                                                                                                @"Deleted %@",
-                                                                                                videoInfo[@"title"]]
-                                                                                      firstResponder:settingsVC] send];
+                                                                                [self showGonerinoToastWithMessage:
+                                                                                    [NSString stringWithFormat:@"Deleted %@",
+                                                                                                               videoInfo[@"title"]]];
                                                                             }]];
 
                                                         [alertController
@@ -196,7 +284,105 @@ typedef struct {
                         ListViewController *vc = [ListViewController new];
 
                         vc.titleText = @"Manage Words";
-                        vc.items = [[[WordManager sharedInstance] blockedWords] mutableCopy];
+                        vc.itemType = @"word";
+                        vc.loadItemsBlock = ^NSArray *{
+                            return [[WordManager sharedInstance] blockedWords];
+                        };
+                        vc.removeItemBlock = ^(NSString *text) {
+                            [[WordManager sharedInstance] removeBlockedWord:text];
+                            [self showGonerinoToastWithMessage:
+                                [NSString stringWithFormat:@"Deleted %@", text]];
+                        };
+                        vc.removeSelectedItemsBlock = ^(NSArray<NSString *> *texts) {
+                            NSMutableArray *updatedWords =
+                                [[[WordManager sharedInstance] blockedWords] mutableCopy];
+                            if (!updatedWords) {
+                                updatedWords = [NSMutableArray array];
+                            }
+
+                            [updatedWords removeObjectsInArray:texts];
+                            [[WordManager sharedInstance] setBlockedWords:updatedWords];
+                            [self showMultipleDeleteToastForItemType:@"word" count:texts.count];
+                        };
+                        vc.moveItemBlock = ^(NSInteger fromIndex, NSInteger toIndex) {
+                            NSMutableArray *updatedWords =
+                                [[[WordManager sharedInstance] blockedWords] mutableCopy];
+                            if (!updatedWords) return;
+
+                            if (fromIndex < 0 || toIndex < 0 ||
+                                fromIndex >= updatedWords.count ||
+                                toIndex >= updatedWords.count) {
+                                return;
+                            }
+
+                            NSString *item = updatedWords[fromIndex];
+                            [updatedWords removeObjectAtIndex:fromIndex];
+                            [updatedWords insertObject:item atIndex:toIndex];
+
+                            [[WordManager sharedInstance] setBlockedWords:updatedWords];
+                        };
+
+                        __weak ListViewController *weakVC = vc;
+                        vc.addButtonTappedBlock = ^{
+                            [self presentTextInputAlertWithTitle:@"Add Word"
+                                                         message:@"Enter a blocked word or regex rule"
+                                                     placeholder:@"Blocked word"
+                                                     initialText:@""
+                                                       saveBlock:^(NSString *newText) {
+                                [[WordManager sharedInstance] addBlockedWord:newText];
+
+                                [self showGonerinoToastWithMessage:
+                                    [NSString stringWithFormat:@"Added %@", newText]];
+
+                                ListViewController *strongVC = weakVC;
+                                if (!strongVC) return;
+
+                                if (strongVC.loadItemsBlock) {
+                                    NSArray *loadedItems = strongVC.loadItemsBlock();
+                                    strongVC.items = loadedItems ? [loadedItems mutableCopy] : [NSMutableArray array];
+                                } else if (!strongVC.items) {
+                                    strongVC.items = [NSMutableArray array];
+                                }
+
+                                [strongVC.tableView reloadData];
+                            }];
+                        };
+
+                        vc.editItemTappedBlock = ^(NSInteger index, NSString *currentText) {
+                            [self presentTextInputAlertWithTitle:@"Edit Word"
+                                                         message:@"Edit the blocked word or regex rule"
+                                                     placeholder:@"Blocked word"
+                                                     initialText:currentText
+                                                       saveBlock:^(NSString *newText) {
+                                NSMutableArray<NSString *> *updatedWords =
+                                    [[[WordManager sharedInstance] blockedWords] mutableCopy];
+                                if (!updatedWords) {
+                                    updatedWords = [NSMutableArray array];
+                                }
+
+                                if (index < 0 || index >= updatedWords.count) {
+                                    return;
+                                }
+
+                                updatedWords[index] = newText;
+                                [[WordManager sharedInstance] setBlockedWords:updatedWords];
+
+                                [self showGonerinoToastWithMessage:
+                                    [NSString stringWithFormat:@"Edited %@", newText]];
+
+                                ListViewController *strongVC = weakVC;
+                                if (!strongVC) return;
+
+                                if (strongVC.loadItemsBlock) {
+                                    NSArray *loadedItems = strongVC.loadItemsBlock();
+                                    strongVC.items = loadedItems ? [loadedItems mutableCopy] : [NSMutableArray array];
+                                } else if (!strongVC.items) {
+                                    strongVC.items = [NSMutableArray array];
+                                }
+
+                                [strongVC.tableView reloadData];
+                            }];
+                        };
 
                         YTSettingsViewController *delegate =
                         [self valueForKey:@"_settingsViewControllerDelegate"];
@@ -215,11 +401,9 @@ typedef struct {
                        switchOn:[[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPeopleWatched"]
                     switchBlock:^BOOL(YTSettingsCell *cell, BOOL enabled) {
                         [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoPeopleWatched"];
-                        YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
-                        [[%c(YTToastResponderEvent)
-                            eventWithMessage:[NSString stringWithFormat:@"'People also watched' %@",
-                                                                        enabled ? @"blocked" : @"unblocked"]
-                              firstResponder:settingsVC] send];
+                        [self showGonerinoToastWithMessage:
+                            [NSString stringWithFormat:@"'People also watched' %@",
+                                                       enabled ? @"blocked" : @"unblocked"]];
                         return YES;
                     }
                   settingItemId:0];
@@ -232,11 +416,9 @@ typedef struct {
                        switchOn:[[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoMightLike"]
                     switchBlock:^BOOL(YTSettingsCell *cell, BOOL enabled) {
                         [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoMightLike"];
-                        YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
-                        [[%c(YTToastResponderEvent)
-                            eventWithMessage:[NSString stringWithFormat:@"'You might also like' %@",
-                                                                        enabled ? @"blocked" : @"unblocked"]
-                              firstResponder:settingsVC] send];
+                        [self showGonerinoToastWithMessage:
+                            [NSString stringWithFormat:@"'You might also like' %@",
+                                                       enabled ? @"blocked" : @"unblocked"]];
                         return YES;
                     }
                   settingItemId:0];
@@ -385,7 +567,6 @@ typedef struct {
     if (urls.count == 0)
         return;
 
-    YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
     NSURL *url                           = urls.firstObject;
 
     if (isImportOperation) {
@@ -397,8 +578,7 @@ typedef struct {
         [url stopAccessingSecurityScopedResource];
 
         if (!data || error) {
-            [[%c(YTToastResponderEvent) eventWithMessage:@"Failed to read settings file"
-                                                     firstResponder:settingsVC] send];
+            [self showGonerinoToastWithMessage:@"Failed to read settings file"];
             return;
         }
 
@@ -408,8 +588,7 @@ typedef struct {
                                                                              error:&error];
 
         if (!settings || error) {
-            [[%c(YTToastResponderEvent) eventWithMessage:@"Invalid settings file format"
-                                                     firstResponder:settingsVC] send];
+            [self showGonerinoToastWithMessage:@"Invalid settings file format"];
             return;
         }
 
@@ -437,13 +616,12 @@ typedef struct {
 
             [[NSUserDefaults standardUserDefaults] synchronize];
             [self reloadGonerinoSection];
-            [[%c(YTToastResponderEvent) eventWithMessage:@"Settings imported successfully"
-                                                     firstResponder:settingsVC] send];
+            [self showGonerinoToastWithMessage:@"Settings imported successfully"];
         };
 
         NSArray *channels = settings[@"blockedChannels"];
         if (channels) {
-            [[ChannelManager sharedInstance] setBlockedChannels:[NSMutableArray arrayWithArray:channels]];
+            [[ChannelManager sharedInstance] setBlockedChannels:channels];
         }
 
         NSArray *videos = settings[@"blockedVideos"];
@@ -464,17 +642,13 @@ typedef struct {
                     [[VideoManager sharedInstance] setBlockedVideos:videos];
                     continueImport();
                 } else {
-                    [[%c(YTToastResponderEvent)
-                        eventWithMessage:@"Format outdated, blocked videos will not be imported"
-                          firstResponder:settingsVC] send];
+                    [self showGonerinoToastWithMessage:@"Format outdated, blocked videos will not be imported"];
 
                     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
                                    dispatch_get_main_queue(), ^{ continueImport(); });
                 }
             } else {
-                [[%c(YTToastResponderEvent)
-                    eventWithMessage:@"Format outdated, blocked videos will not be imported"
-                      firstResponder:settingsVC] send];
+                [self showGonerinoToastWithMessage:@"Format outdated, blocked videos will not be imported"];
 
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
                                dispatch_get_main_queue(), ^{ continueImport(); });
@@ -495,16 +669,29 @@ typedef struct {
         settings[@"blockMightLike"] = @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoMightLike"]);
 
         [settings writeToURL:url atomically:YES];
-        [[%c(YTToastResponderEvent) eventWithMessage:@"Settings exported successfully"
-                                                 firstResponder:settingsVC] send];
+        [self showGonerinoToastWithMessage:@"Settings exported successfully"];
     }
 }
 
 %new
 - (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
+    NSString *message = isImportOperation ? @"Import cancelled" : @"Export cancelled";
+    [self showGonerinoToastWithMessage:message];
+}
+
+%new
+- (void)showGonerinoToastWithMessage:(NSString *)message {
     YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
-    NSString *message                    = isImportOperation ? @"Import cancelled" : @"Export cancelled";
     [[%c(YTToastResponderEvent) eventWithMessage:message firstResponder:settingsVC] send];
+}
+
+%new
+- (void)showMultipleDeleteToastForItemType:(NSString *)itemType count:(NSUInteger)count {
+    NSString *message = [NSString stringWithFormat:@"Deleted %lu %@%@",
+                                                   (unsigned long)count,
+                                                   itemType,
+                                                   count == 1 ? @"" : @"s"];
+    [self showGonerinoToastWithMessage:message];
 }
 
 %new
