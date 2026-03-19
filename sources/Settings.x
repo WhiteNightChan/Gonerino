@@ -85,7 +85,13 @@ typedef struct {
 
                             [updatedChannels removeObjectsInArray:texts];
                             [[ChannelManager sharedInstance] setBlockedChannels:updatedChannels];
-                            [self showMultipleDeleteToastForItemType:@"channel" count:texts.count];
+
+                            if (texts.count == 1) {
+                                [self showGonerinoToastWithMessage:
+                                    [NSString stringWithFormat:@"Deleted \"%@\"", texts.firstObject]];
+                            } else {
+                                [self showMultipleDeleteToastForItemType:@"channel" count:texts.count];
+                            }
                         };
                         vc.moveItemBlock = ^(NSInteger fromIndex, NSInteger toIndex) {
                             NSMutableArray *updatedChannels =
@@ -266,7 +272,13 @@ typedef struct {
 
                             [updatedWords removeObjectsInArray:texts];
                             [[WordManager sharedInstance] setBlockedWords:updatedWords];
-                            [self showMultipleDeleteToastForItemType:@"word" count:texts.count];
+
+                            if (texts.count == 1) {
+                                [self showGonerinoToastWithMessage:
+                                    [NSString stringWithFormat:@"Deleted \"%@\"", texts.firstObject]];
+                            } else {
+                                [self showMultipleDeleteToastForItemType:@"word" count:texts.count];
+                            }
                         };
                         vc.moveItemBlock = ^(NSInteger fromIndex, NSInteger toIndex) {
                             NSMutableArray *updatedWords =
