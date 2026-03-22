@@ -1,12 +1,16 @@
-#import "LVCHelpers/LVCStateHelper.h"
-#import "LVCHelpers/LVCPrivate.h"
+#import "LVStateHelper.h"
+#import "LVPrivate.h"
 
-@implementation ListViewController (LVCStateHelper)
+@implementation ListViewController (LVStateHelper)
 
 #pragma mark - State
 
 - (BOOL)shouldApplyInitialSearchBarOffset {
     if (self.hasAppliedInitialSearchBarOffset) {
+        return NO;
+    }
+
+    if (self.tableView.tableHeaderView != self.searchBar) {
         return NO;
     }
 

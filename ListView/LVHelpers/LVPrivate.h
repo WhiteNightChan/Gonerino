@@ -12,6 +12,8 @@
 
 - (void)goBack;
 - (void)editButtonTapped;
+- (void)updateEmptyStateIfNeeded;
+- (void)updateSelectionUIForCurrentState;
 
 - (void)showToastWithMessage:(NSString *)message;
 - (void)handleLongPress:(UILongPressGestureRecognizer *)gesture;

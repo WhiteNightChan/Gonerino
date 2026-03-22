@@ -54,6 +54,23 @@ typedef struct {
                   settingItemId:0];
     [sectionItems addObject:showButtonToggle];
 
+    YTSettingsSectionItem *useCustomToastToggle = [%c(YTSettingsSectionItem)
+            switchItemWithTitle:@"Use Gonerino Toast"
+               titleDescription:@"Use Gonerino's custom toast instead of YouTube's default toast"
+        accessibilityIdentifier:nil
+                       switchOn:[[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoUseCustomToast"] == nil
+                                    ? YES
+                                    : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoUseCustomToast"]
+                    switchBlock:^BOOL(YTSettingsCell *cell, BOOL enabled) {
+                        [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoUseCustomToast"];
+                        [[NSUserDefaults standardUserDefaults] synchronize];
+                        [self showGonerinoToastWithMessage:
+                            enabled ? @"Using Gonerino toast" : @"Using YouTube toast"];
+                        return YES;
+                    }
+                  settingItemId:0];
+    [sectionItems addObject:useCustomToastToggle];
+
     // picker logic WIP
     NSUInteger channelCount               = [[ChannelManager sharedInstance] blockedChannels].count;
     YTSettingsSectionItem *manageChannels = [%c(YTSettingsSectionItem)
@@ -381,6 +398,10 @@ typedef struct {
                             @([[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoEnabled"] == nil
                                   ? YES
                                   : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoEnabled"]);
+                        settings[@"useCustomToast"] =
+                            @([[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoUseCustomToast"] == nil
+                                  ? YES
+                                  : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoUseCustomToast"]);
                         settings[@"blockPeopleWatched"] =
                             @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPeopleWatched"]);
                         settings[@"blockMightLike"] =
@@ -553,6 +574,12 @@ typedef struct {
                 [[NSUserDefaults standardUserDefaults] setBool:[gonerinoEnabled boolValue] forKey:@"GonerinoEnabled"];
             }
 
+            NSNumber *useCustomToast = settings[@"useCustomToast"];
+            if (useCustomToast) {
+                [[NSUserDefaults standardUserDefaults] setBool:[useCustomToast boolValue]
+                                                        forKey:@"GonerinoUseCustomToast"];
+            }
+
             [[NSUserDefaults standardUserDefaults] synchronize];
             [self reloadGonerinoSection];
             [self showGonerinoToastWithMessage:@"Settings imported successfully"];
@@ -603,6 +630,9 @@ typedef struct {
         settings[@"gonerinoEnabled"]  = @([[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoEnabled"] == nil
                                               ? YES
                                               : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoEnabled"]);
+        settings[@"useCustomToast"]   = @([[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoUseCustomToast"] == nil
+                                              ? YES
+                                              : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoUseCustomToast"]);
         settings[@"blockPeopleWatched"] =
             @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPeopleWatched"]);
         settings[@"blockMightLike"] = @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoMightLike"]);

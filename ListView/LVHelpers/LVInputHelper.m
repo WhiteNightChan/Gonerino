@@ -1,8 +1,8 @@
-#import "LVCHelpers/LVCInputHelper.h"
-#import "LVCHelpers/LVCPrivate.h"
-#import "LVCHelpers/LVCSearchHelper.h"
+#import "LVInputHelper.h"
+#import "LVPrivate.h"
+#import "LVSearchHelper.h"
 
-@implementation ListViewController (LVCInputHelper)
+@implementation ListViewController (LVInputHelper)
 
 #pragma mark - Input Config
 

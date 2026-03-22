@@ -1,15 +1,25 @@
 #import "ListViewController.h"
 #import "ToastHelper.h"
+#import "LVTextCell.h"
 
-#import "LVCHelpers/LVCPrivate.h"
-#import "LVCHelpers/LVCResolveHelper.h"
-#import "LVCHelpers/LVCDeleteHelper.h"
-#import "LVCHelpers/LVCStateHelper.h"
-#import "LVCHelpers/LVCSetupHelper.h"
-#import "LVCHelpers/LVCInputHelper.h"
+#import "LVHelpers/LVPrivate.h"
+#import "LVHelpers/LVResolveHelper.h"
+#import "LVHelpers/LVDeleteHelper.h"
+#import "LVHelpers/LVStateHelper.h"
+#import "LVHelpers/LVSetupHelper.h"
+#import "LVHelpers/LVInputHelper.h"
 
 @interface ListViewController ()
 - (void)handleItemSelectionAtIndex:(NSInteger)index;
+- (BOOL)shouldShowSearchBar;
+- (UILabel *)emptyStateLabelWithText:(NSString *)text;
+- (void)updateSearchBarVisibilityIfNeeded;
+- (void)updateEmptyStateIfNeeded;
+- (NSInteger)currentSelectedCount;
+- (NSInteger)currentVisibleItemCount;
+- (NSString *)currentCountDisplayText;
+- (void)updateRightBarButtonItemsForCurrentState;
+- (void)updateSelectionUIForCurrentState;
 @end
 
 @implementation ListViewController
@@ -30,6 +40,10 @@
     self.initialTableViewOffsetY = CGFLOAT_MAX;
 
     [self configureTableViewAppearance];
+    [self.tableView registerClass:LVTextCell.class
+           forCellReuseIdentifier:@"LVTextCell"];
+    self.tableView.rowHeight = UITableViewAutomaticDimension;
+    self.tableView.estimatedRowHeight = 56.0;
 
     self.searchBar = [self configuredSearchBar];
     self.tableView.tableHeaderView = self.searchBar;
@@ -39,7 +53,9 @@
         [self fixedSpaceBarButtonItemWithWidth:10],
         [self backBarButtonItem]
     ];
-    self.navigationItem.rightBarButtonItems = [self rightBarButtonItemsForEditing:NO];
+    self.navigationItem.rightBarButtonItems =
+        [self rightBarButtonItemsForEditing:NO
+                           countDisplayText:[self currentCountDisplayText]];
 
     [self configureToolbarItems];
     [self.navigationController setToolbarHidden:YES animated:NO];
@@ -48,6 +64,7 @@
     [self configureLongPressGesture];
 
     self.navigationItem.titleView = [self configuredTitleView];
+    [self updateEmptyStateIfNeeded];
 }
 
 - (void)viewDidLayoutSubviews {
@@ -72,6 +89,112 @@
     [self.navigationController popViewControllerAnimated:YES];
 }
 
+#pragma mark - Empty State
+
+- (BOOL)shouldShowSearchBar {
+    if (self.isSearching) {
+        return YES;
+    }
+
+    return self.items.count > 0;
+}
+
+- (UILabel *)emptyStateLabelWithText:(NSString *)text {
+    UILabel *label = [UILabel new];
+    label.text = text;
+    label.textColor = [UIColor colorWithWhite:1.0 alpha:0.45];
+    label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+    label.textAlignment = NSTextAlignmentCenter;
+    label.numberOfLines = 0;
+
+    return label;
+}
+
+- (void)updateSearchBarVisibilityIfNeeded {
+    BOOL shouldShowSearchBar = [self shouldShowSearchBar];
+
+    if (shouldShowSearchBar) {
+        if (self.searchBar.frame.size.height != 56.0) {
+            self.searchBar.frame = CGRectMake(0, 0, 0, 56.0);
+        }
+
+        if (self.tableView.tableHeaderView != self.searchBar) {
+            self.tableView.tableHeaderView = self.searchBar;
+        }
+
+        return;
+    }
+
+    if (self.searchBar.isFirstResponder) {
+        [self.searchBar resignFirstResponder];
+    }
+
+    if (self.tableView.tableHeaderView != nil) {
+        self.tableView.tableHeaderView = nil;
+    }
+}
+
+- (void)updateEmptyStateIfNeeded {
+    [self updateSearchBarVisibilityIfNeeded];
+
+    NSString *emptyText = nil;
+
+    if (self.isSearching) {
+        if (self.filteredItems.count == 0) {
+            emptyText = @"No results";
+        }
+    } else if (self.items.count == 0) {
+        emptyText = @"No items";
+    }
+
+    if (emptyText.length == 0) {
+        self.tableView.backgroundView = nil;
+        return;
+    }
+
+    self.tableView.backgroundView = [self emptyStateLabelWithText:emptyText];
+}
+
+- (NSInteger)currentSelectedCount {
+    if (!self.tableView.editing) {
+        return 0;
+    }
+
+    return [self selectedIndexPathsForDeleteAction].count;
+}
+
+- (NSInteger)currentVisibleItemCount {
+    if (self.isSearching) {
+        return self.filteredItems.count;
+    }
+
+    return self.items.count;
+}
+
+- (NSString *)currentCountDisplayText {
+    NSInteger visibleCount = [self currentVisibleItemCount];
+    NSInteger selectedCount = [self currentSelectedCount];
+
+    if (self.tableView.editing) {
+        return [NSString stringWithFormat:@"%ld/%ld",
+                                          (long)selectedCount,
+                                          (long)visibleCount];
+    }
+
+    return [NSString stringWithFormat:@"%ld items", (long)visibleCount];
+}
+
+- (void)updateRightBarButtonItemsForCurrentState {
+    self.navigationItem.rightBarButtonItems =
+        [self rightBarButtonItemsForEditing:self.tableView.editing
+                           countDisplayText:[self currentCountDisplayText]];
+}
+
+- (void)updateSelectionUIForCurrentState {
+    [self updateSelectionToolbarButtonsForCurrentState];
+    [self updateRightBarButtonItemsForCurrentState];
+}
+
 #pragma mark - Table Data
 
 - (NSInteger)tableView:(UITableView *)tableView
@@ -87,22 +210,15 @@
 - (UITableViewCell *)tableView:(UITableView *)tableView
          cellForRowAtIndexPath:(NSIndexPath *)indexPath {
 
-    UITableViewCell *cell =
-    [tableView dequeueReusableCellWithIdentifier:@"Cell"
+    LVTextCell *cell =
+    [tableView dequeueReusableCellWithIdentifier:@"LVTextCell"
                                     forIndexPath:indexPath];
 
     NSDictionary *entry = [self resolvedEntryForIndexPath:indexPath];
     NSString *displayText = entry[@"text"];
 
-    cell.textLabel.text = displayText;
+    [cell configureWithText:displayText];
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
-
-    UIView *selectedView = [UIView new];
-    selectedView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.12];
-    cell.selectedBackgroundView = selectedView;
-
-    cell.textLabel.numberOfLines = 0;
-    cell.textLabel.lineBreakMode = NSLineBreakByWordWrapping;
 
     return cell;
 }
@@ -113,7 +229,7 @@
 didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
 
     if (tableView.editing) {
-        [self updateDeleteToolbarButtonEnabled];
+        [self updateSelectionUIForCurrentState];
         return;
     }
 
@@ -132,7 +248,7 @@ didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
 didDeselectRowAtIndexPath:(NSIndexPath *)indexPath {
 
     if (tableView.editing) {
-        [self updateDeleteToolbarButtonEnabled];
+        [self updateSelectionUIForCurrentState];
     }
 }
 
@@ -151,12 +267,18 @@ didDeselectRowAtIndexPath:(NSIndexPath *)indexPath {
 - (void)editButtonTapped {
     BOOL editing = !self.tableView.editing;
 
+    if (editing) {
+        [self.searchBar resignFirstResponder];
+    }
+
     [self.tableView setEditing:editing animated:YES];
-    self.navigationItem.rightBarButtonItems = [self rightBarButtonItemsForEditing:editing];
+    [self.tableView beginUpdates];
+    [self.tableView endUpdates];
+
+    [self updateSelectionUIForCurrentState];
     [self updateInteractivePopGestureEnabled];
 
     if (editing) {
-        [self updateDeleteToolbarButtonEnabled];
         [self.navigationController setToolbarHidden:NO animated:YES];
     } else {
         [self.navigationController setToolbarHidden:YES animated:YES];

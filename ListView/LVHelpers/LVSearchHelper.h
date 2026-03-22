@@ -1,6 +1,6 @@
 #import "ListViewController.h"
 
-@interface ListViewController (LVCSearchHelper)
+@interface ListViewController (LVSearchHelper)
 - (void)applySearchStateForText:(NSString *)searchText;
 - (void)rebuildFilteredItemsForCurrentSearchText;
 - (void)reloadItemsFromSourceAndRefresh;
