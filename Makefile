@@ -8,9 +8,9 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = Gonerino
 
-$(TWEAK_NAME)_FILES = $(shell find sources -name "*.x*" -o -name "*.m*")
+$(TWEAK_NAME)_FILES = $(shell find sources ListView \( -name "*.x*" -o -name "*.m*" \))
 $(TWEAK_NAME)_FRAMEWORKS = UIKit Foundation UniformTypeIdentifiers MobileCoreServices
-$(TWEAK_NAME)_CFLAGS = -fobjc-arc -DPACKAGE_VERSION='@"$(shell grep '^Version:' control | cut -d' ' -f2)"' -Iheaders
+$(TWEAK_NAME)_CFLAGS = -fobjc-arc -DPACKAGE_VERSION='@"$(shell grep '^Version:' control | cut -d' ' -f2)"' -Iheaders -IListView -IListView/LVHelpers
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 

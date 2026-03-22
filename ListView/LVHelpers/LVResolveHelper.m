@@ -1,7 +1,7 @@
-#import "LVCHelpers/LVCResolveHelper.h"
-#import "LVCHelpers/LVCPrivate.h"
+#import "LVResolveHelper.h"
+#import "LVPrivate.h"
 
-@implementation ListViewController (LVCResolveHelper)
+@implementation ListViewController (LVResolveHelper)
 
 #pragma mark - Resolve
 

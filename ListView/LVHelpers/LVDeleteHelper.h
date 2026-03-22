@@ -1,10 +1,12 @@
 #import "ListViewController.h"
 
-@interface ListViewController (LVCDeleteHelper)
+@interface ListViewController (LVDeleteHelper)
 - (NSArray<NSIndexPath *> *)selectedIndexPathsForDeleteAction;
 - (void)setDeleteToolbarButtonEnabled:(BOOL)enabled;
 - (void)updateDeleteToolbarButtonEnabled;
+- (void)updateSelectionToolbarButtonsForCurrentState;
 
+- (void)selectAllToolbarButtonTapped;
 - (void)deleteSelectedItemsTapped;
 - (void)performDeleteSelectedItems;
 

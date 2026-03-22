@@ -1,6 +1,6 @@
 #import "ListViewController.h"
 
-@interface ListViewController (LVCInputHelper)
+@interface ListViewController (LVInputHelper)
 - (NSDictionary *)inputConfigForEditing:(BOOL)isEditing;
 - (UITextView *)configuredInputTextViewWithFrame:(CGRect)frame;
 - (UIAlertController *)inputAlertControllerWithTitle:(NSString *)title

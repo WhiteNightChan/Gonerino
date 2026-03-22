@@ -1,8 +1,9 @@
-#import "LVCHelpers/LVCSearchHelper.h"
-#import "LVCHelpers/LVCPrivate.h"
-#import "LVCHelpers/LVCStateHelper.h"
+#import "LVSearchHelper.h"
+#import "LVPrivate.h"
+#import "LVStateHelper.h"
+#import "LVDeleteHelper.h"
 
-@implementation ListViewController (LVCSearchHelper)
+@implementation ListViewController (LVSearchHelper)
 
 #pragma mark - Search
 
@@ -38,22 +39,48 @@
     }
 }
 
+- (void)clearEditingSelectionForSearchRefresh {
+    if (!self.tableView.editing) {
+        return;
+    }
+
+    NSArray<NSIndexPath *> *selectedIndexPaths =
+        [self.tableView.indexPathsForSelectedRows copy];
+
+    for (NSIndexPath *indexPath in selectedIndexPaths) {
+        [self.tableView deselectRowAtIndexPath:indexPath animated:NO];
+    }
+
+    [self updateSelectionUIForCurrentState];
+}
+
 - (void)reloadItemsFromSourceAndRefresh {
     [self loadItemsFromSourceIfNeeded];
+    [self clearEditingSelectionForSearchRefresh];
 
     if (self.isSearching) {
         [self rebuildFilteredItemsForCurrentSearchText];
         [self.tableView reloadData];
+        [self updateDeleteToolbarButtonEnabled];
+        [self updateEmptyStateIfNeeded];
+        [self updateSelectionUIForCurrentState];
         return;
     }
 
     [self.tableView reloadData];
+    [self updateDeleteToolbarButtonEnabled];
+    [self updateEmptyStateIfNeeded];
+    [self updateSelectionUIForCurrentState];
 }
 
 - (void)updateFilteredItemsForSearchText:(NSString *)searchText {
+    [self clearEditingSelectionForSearchRefresh];
     [self applySearchStateForText:searchText];
     [self rebuildFilteredItemsForCurrentSearchText];
     [self.tableView reloadData];
+    [self updateDeleteToolbarButtonEnabled];
+    [self updateEmptyStateIfNeeded];
+    [self updateSelectionUIForCurrentState];
 }
 
 #pragma mark - UISearchBarDelegate
