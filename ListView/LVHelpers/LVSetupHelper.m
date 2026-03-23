@@ -221,9 +221,9 @@
 }
 
 - (UIView *)configuredTitleView {
-    UIView *customTitleView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 174, 44)];
+    UIView *customTitleView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 173, 44)];
 
-    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 174, 44)];
+    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(-1, 0, 174, 44)];
     titleLabel.text = self.titleText;
     titleLabel.textColor = [UIColor whiteColor];
     titleLabel.font = [UIFont fontWithName:@"YouTubeSans-Bold" size:20];
