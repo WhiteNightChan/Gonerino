@@ -186,7 +186,7 @@ static void GonerinoShowCustomToast(NSString *message,
 
     UILabel *label = [UILabel new];
     label.text = message;
-    label.textColor = [[UIColor blackColor] colorWithAlphaComponent:0.92];
+    label.textColor = [UIColor.systemBackgroundColor colorWithAlphaComponent:0.92];
     label.font = [UIFont systemFontOfSize:kGonerinoToastFontSize
                                    weight:UIFontWeightRegular];
     label.numberOfLines = 0;
@@ -202,12 +202,12 @@ static void GonerinoShowCustomToast(NSString *message,
 
     UIView *toastView =
         [[UIView alloc] initWithFrame:CGRectMake(0, 0, toastWidth, toastHeight)];
-    toastView.backgroundColor = [[UIColor whiteColor] colorWithAlphaComponent:0.94];
+    toastView.backgroundColor = [UIColor.labelColor colorWithAlphaComponent:0.94];
     toastView.layer.cornerRadius = kGonerinoToastCornerRadius;
     toastView.layer.masksToBounds = YES;
     toastView.layer.borderWidth = kGonerinoToastBorderWidth;
     toastView.layer.borderColor =
-        [[UIColor blackColor] colorWithAlphaComponent:0.12].CGColor;
+        [UIColor.systemBackgroundColor colorWithAlphaComponent:0.12].CGColor;
     toastView.alpha = 0.0;
     toastView.userInteractionEnabled = NO;
 

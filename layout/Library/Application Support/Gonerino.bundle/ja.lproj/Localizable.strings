@@ -1,0 +1,121 @@
+/* Item Names */
+"texthelper.item.channel.singular" = "チャンネル";
+"texthelper.item.channel.plural" = "チャンネル";
+
+"texthelper.item.word.singular" = "単語";
+"texthelper.item.word.plural" = "単語";
+
+"texthelper.item.video.singular" = "動画";
+"texthelper.item.video.plural" = "動画";
+
+"texthelper.item.item.singular" = "項目";
+"texthelper.item.item.plural" = "項目";
+
+/* ListView */
+"texthelper.search.placeholder" = "検索";
+
+"texthelper.edit_button.edit" = "編集";
+"texthelper.edit_button.done" = "完了";
+
+"texthelper.count.display" = "%1$lu件";
+
+"texthelper.list.empty.no_items" = "項目がありません";
+"texthelper.list.empty.no_results" = "該当する項目がありません";
+
+"texthelper.toolbar.select_all" = "全選択";
+"texthelper.toolbar.deselect_all" = "選択解除";
+
+"texthelper.input.item.add.title" = "項目を追加";
+"texthelper.input.item.edit.title" = "項目を編集";
+"texthelper.input.item.add.message" = "テキストを入力";
+"texthelper.input.item.edit.message" = "テキストを編集";
+"texthelper.input.item.placeholder" = "テキスト";
+
+"texthelper.input.channel.add.title" = "チャンネルを追加";
+"texthelper.input.channel.edit.title" = "チャンネルを編集";
+"texthelper.input.channel.add.message" = "チャンネル名または正規表現を入力";
+"texthelper.input.channel.edit.message" = "チャンネル名または正規表現を編集";
+"texthelper.input.channel.placeholder" = "チャンネル名";
+
+"texthelper.input.word.add.title" = "単語を追加";
+"texthelper.input.word.edit.title" = "単語を編集";
+"texthelper.input.word.add.message" = "ブロックする単語または正規表現を入力";
+"texthelper.input.word.edit.message" = "ブロックする単語または正規表現を編集";
+"texthelper.input.word.placeholder" = "ブロックする単語";
+
+"texthelper.action.save" = "保存";
+"texthelper.action.cancel" = "キャンセル";
+
+/* CRUD Toasts */
+"texthelper.toast.already_exists" = "すでに存在します: 「%@」";
+"texthelper.toast.no_changes" = "変更はありません: 「%@」";
+"texthelper.toast.copied" = "「%@」をコピーしました";
+"texthelper.toast.deleted_quoted" = "「%@」を削除しました";
+"texthelper.toast.deleted_plain" = "%@を削除しました";
+"texthelper.toast.added_quoted" = "「%@」を追加しました";
+"texthelper.toast.edited" = "「%@」を「%@」に変更しました";
+
+/* Count / Delete */
+"texthelper.count.blocked" = "ブロック中の%2$@ %1$lu件";
+
+"texthelper.delete.title" = "%@を削除";
+"texthelper.delete.message.single_selected" = "「%@」を削除しますか？";
+"texthelper.delete.message.single_generic" = "この%@を削除しますか？";
+"texthelper.delete.message.multiple" = "選択した%3$@ %1$lu件を削除しますか？";
+
+"texthelper.toolbar.delete" = "削除";
+"texthelper.action.delete" = "削除";
+
+"texthelper.delete.toast.multiple" = "%1$lu件の%3$@を削除しました";
+
+/* Settings */
+"texthelper.settings.header.gonerino" = "Gonerino設定";
+
+"texthelper.settings.show_button.title" = "Gonerinoボタンを表示";
+"texthelper.settings.show_button.description" = "上部ナビゲーションバーにGonerinoトグルボタンを表示";
+"texthelper.toast.show_button.enabled" = "Gonerinoボタンを表示しました";
+"texthelper.toast.show_button.disabled" = "Gonerinoボタンを非表示にしました";
+
+"texthelper.settings.use_toast.title" = "Gonerino Toastを使用";
+"texthelper.settings.use_toast.description" = "YouTube標準のtoastの代わりにGonerino独自toastを使用";
+"texthelper.toast.mode.gonerino" = "Gonerino toastを使用します";
+"texthelper.toast.mode.youtube" = "YouTube toastを使用します";
+
+"texthelper.settings.manage_channels" = "チャンネルを管理";
+"texthelper.settings.manage_videos" = "動画を管理";
+"texthelper.settings.manage_words" = "単語を管理";
+
+"texthelper.toast.no_blocked_videos" = "ブロックされた動画はありません";
+"texthelper.settings.blocked_videos_row" = "ブロックされた動画";
+"texthelper.settings.unknown_channel" = "不明なチャンネル";
+"texthelper.settings.unknown_title" = "不明なタイトル";
+
+"texthelper.settings.people_watched.title" = "「この動画を視聴した人はこちらも視聴」をブロック";
+"texthelper.settings.people_watched.description" = "「この動画を視聴した人はこちらも視聴」の候補を非表示";
+"texthelper.toast.people_watched.enabled" = "「この動画を視聴した人はこちらも視聴」をブロックしました";
+"texthelper.toast.people_watched.disabled" = "「この動画を視聴した人はこちらも視聴」のブロックを解除しました";
+
+"texthelper.settings.might_like.title" = "「こちらもおすすめ」をブロック";
+"texthelper.settings.might_like.description" = "「こちらもおすすめ」の候補を非表示";
+"texthelper.toast.might_like.enabled" = "「こちらもおすすめ」をブロックしました";
+"texthelper.toast.might_like.disabled" = "「こちらもおすすめ」のブロックを解除しました";
+
+"texthelper.settings.header.manage" = "設定管理";
+"texthelper.settings.export.title" = "設定をエクスポート";
+"texthelper.settings.export.description" = "設定をplistファイルにエクスポート";
+"texthelper.settings.import.title" = "設定をインポート";
+"texthelper.settings.import.description" = "設定をplistファイルからインポート";
+
+"texthelper.settings.header.about" = "情報";
+"texthelper.settings.github.description" = "ソースコードの確認と不具合報告";
+"texthelper.settings.version.title" = "バージョン";
+
+/* Import / Export Toasts */
+"texthelper.toast.import.failed_read" = "設定ファイルの読み込みに失敗しました";
+"texthelper.toast.import.invalid_format" = "設定ファイルの形式が無効です";
+"texthelper.toast.import.success" = "設定をインポートしました";
+"texthelper.toast.import.outdated_videos" = "形式が古いため、ブロックされた動画はインポートされません";
+"texthelper.toast.import.cancelled" = "インポートをキャンセルしました";
+
+"texthelper.toast.export.success" = "設定をエクスポートしました";
+"texthelper.toast.export.cancelled" = "エクスポートをキャンセルしました";

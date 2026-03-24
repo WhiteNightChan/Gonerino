@@ -1,5 +1,6 @@
 #import "LVSetupHelper.h"
 #import "LVPrivate.h"
+#import "TextHelper.h"
 
 @implementation ListViewController (LVSetupHelper)
 
@@ -17,7 +18,7 @@
 - (UISearchBar *)configuredSearchBar {
     UISearchBar *searchBar = [[UISearchBar alloc] initWithFrame:CGRectMake(0, 0, 0, 56)];
     searchBar.delegate = self;
-    searchBar.placeholder = @"Search";
+    searchBar.placeholder = TextHelperSearchPlaceholder();
     searchBar.autocapitalizationType = UITextAutocapitalizationTypeNone;
     searchBar.autocorrectionType = UITextAutocorrectionTypeNo;
     searchBar.smartQuotesType = UITextSmartQuotesTypeNo;
@@ -56,55 +57,45 @@
 }
 
 - (UIBarButtonItem *)backBarButtonItem {
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
+
     UIImageSymbolConfiguration *config =
         [UIImageSymbolConfiguration configurationWithPointSize:18.5
                                                        weight:UIImageSymbolWeightLight];
-
     UIImage *arrow = [[UIImage systemImageNamed:@"chevron.left"
                                withConfiguration:config]
                       imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 
-    UIBarButtonItem *backButton =
-        [[UIBarButtonItem alloc] initWithImage:arrow
-                                         style:UIBarButtonItemStylePlain
-                                        target:self
-                                        action:@selector(goBack)];
+    [button setImage:arrow forState:UIControlStateNormal];
+    button.tintColor = [UIColor labelColor];
+    button.frame = CGRectMake(0, 0, 42, 44);
+    [button addTarget:self
+               action:@selector(goBack)
+     forControlEvents:UIControlEventTouchUpInside];
 
-    backButton.tintColor = [UIColor whiteColor];
+    UIView *container = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 42, 44)];
+    [container addSubview:button];
 
-    return backButton;
+    return [[UIBarButtonItem alloc] initWithCustomView:container];
 }
 
-- (CGFloat)rightBarTrailingSlotWidth {
-    UILabel *sizingLabel = [UILabel new];
-    sizingLabel.text = @"XXXX items";
-    sizingLabel.font = [UIFont systemFontOfSize:17.0 weight:UIFontWeightMedium];
-    [sizingLabel sizeToFit];
-
-    return ceil(CGRectGetWidth(sizingLabel.bounds));
-}
-
-- (CGFloat)rightBarEditSlotWidth {
-    UILabel *sizingLabel = [UILabel new];
-    sizingLabel.text = @"Done";
-    sizingLabel.font = [UIFont systemFontOfSize:17.0 weight:UIFontWeightRegular];
-    [sizingLabel sizeToFit];
-
-    return ceil(CGRectGetWidth(sizingLabel.bounds));
-}
-
-- (UIBarButtonItem *)fixedWidthTextBarButtonItemWithTitle:(NSString *)title
-                                                textColor:(UIColor *)textColor
-                                               fontWeight:(UIFontWeight)fontWeight
-                                                    width:(CGFloat)width
-                                                   target:(id)target
-                                                   action:(SEL)action {
+- (UIBarButtonItem *)textBarButtonItemWithTitle:(NSString *)title
+                                      textColor:(UIColor *)textColor
+                                     fontWeight:(UIFontWeight)fontWeight
+                                         target:(id)target
+                                         action:(SEL)action {
     UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
-    button.frame = CGRectMake(0, 0, width, 32.0);
-    [button setTitle:title forState:UIControlStateNormal];
+    [button setTitle:title ?: @"" forState:UIControlStateNormal];
     [button setTitleColor:textColor forState:UIControlStateNormal];
     button.titleLabel.font = [UIFont systemFontOfSize:17.0 weight:fontWeight];
     button.contentHorizontalAlignment = UIControlContentHorizontalAlignmentRight;
+
+    [button sizeToFit];
+
+    CGRect buttonFrame = button.frame;
+    buttonFrame.size.width = ceil(CGRectGetWidth(buttonFrame));
+    buttonFrame.size.height = 32.0;
+    button.frame = buttonFrame;
 
     if (target && action) {
         [button addTarget:target
@@ -114,23 +105,22 @@
         button.userInteractionEnabled = NO;
     }
 
-    UIView *container = [[UIView alloc] initWithFrame:button.bounds];
+    UIView *container =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 0,
+                                                 CGRectGetWidth(buttonFrame),
+                                                 32.0)];
     container.userInteractionEnabled = target != nil;
     [container addSubview:button];
 
-    UIBarButtonItem *item =
-        [[UIBarButtonItem alloc] initWithCustomView:container];
-
-    return item;
+    return [[UIBarButtonItem alloc] initWithCustomView:container];
 }
 
-- (UIBarButtonItem *)fixedWidthSymbolBarButtonItemWithSystemName:(NSString *)systemName
-                                                       tintColor:(UIColor *)tintColor
-                                                           width:(CGFloat)width
-                                                          target:(id)target
-                                                          action:(SEL)action {
+- (UIBarButtonItem *)symbolBarButtonItemWithSystemName:(NSString *)systemName
+                                             tintColor:(UIColor *)tintColor
+                                                target:(id)target
+                                                action:(SEL)action {
     UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
-    button.frame = CGRectMake(0, 0, width, 32.0);
+    button.frame = CGRectMake(0, 0, 22.5, 32.0);
 
     UIImageSymbolConfiguration *config =
         [UIImageSymbolConfiguration configurationWithPointSize:17.0
@@ -150,69 +140,46 @@
     UIView *container = [[UIView alloc] initWithFrame:button.bounds];
     [container addSubview:button];
 
-    UIBarButtonItem *item =
-        [[UIBarButtonItem alloc] initWithCustomView:container];
-
-    return item;
-}
-
-- (CGFloat)rightBarAddSlotWidth {
-    return 28.0;
-}
-
-- (UIBarButtonItem *)fixedWidthPlaceholderBarButtonItemWithWidth:(CGFloat)width {
-    UIView *placeholderView =
-        [[UIView alloc] initWithFrame:CGRectMake(0, 0, width, 32.0)];
-    placeholderView.userInteractionEnabled = NO;
-
-    UIBarButtonItem *placeholderItem =
-        [[UIBarButtonItem alloc] initWithCustomView:placeholderView];
-
-    return placeholderItem;
+    return [[UIBarButtonItem alloc] initWithCustomView:container];
 }
 
 - (UIBarButtonItem *)addBarButtonItem {
-    return [self fixedWidthSymbolBarButtonItemWithSystemName:@"plus"
-                                                   tintColor:[UIColor whiteColor]
-                                                       width:[self rightBarAddSlotWidth]
-                                                      target:self
-                                                      action:@selector(addButtonTapped)];
+    return [self symbolBarButtonItemWithSystemName:@"plus"
+                                         tintColor:[UIColor labelColor]
+                                            target:self
+                                            action:@selector(addButtonTapped)];
 }
 
 - (UIBarButtonItem *)editBarButtonItemForEditing:(BOOL)editing {
-    return [self fixedWidthTextBarButtonItemWithTitle:(editing ? @"Done" : @"Edit")
-                                            textColor:[UIColor whiteColor]
-                                           fontWeight:UIFontWeightRegular
-                                                width:[self rightBarEditSlotWidth]
-                                               target:self
-                                               action:@selector(editButtonTapped)];
+    return [self textBarButtonItemWithTitle:TextHelperEditButtonTitle(editing)
+                                  textColor:[UIColor labelColor]
+                                 fontWeight:UIFontWeightRegular
+                                     target:self
+                                     action:@selector(editButtonTapped)];
 }
 
 - (UIBarButtonItem *)countDisplayBarButtonItemWithText:(NSString *)text {
-    return [self fixedWidthTextBarButtonItemWithTitle:text
-                                            textColor:[UIColor whiteColor]
-                                           fontWeight:UIFontWeightMedium
-                                                width:[self rightBarTrailingSlotWidth]
-                                               target:nil
-                                               action:nil];
+    return [self textBarButtonItemWithTitle:text
+                                  textColor:[UIColor labelColor]
+                                 fontWeight:UIFontWeightMedium
+                                     target:nil
+                                     action:nil];
 }
 
 - (NSArray<UIBarButtonItem *> *)rightBarButtonItemsForEditing:(BOOL)editing {
-    return [self rightBarButtonItemsForEditing:editing countDisplayText:@"0"];
+    return [self rightBarButtonItemsForEditing:editing
+                              countDisplayText:TextHelperCountDisplayText(0)];
 }
 
 - (NSArray<UIBarButtonItem *> *)rightBarButtonItemsForEditing:(BOOL)editing
                                              countDisplayText:(NSString *)countDisplayText {
-    UIBarButtonItem *rightSpace = [self fixedSpaceBarButtonItemWithWidth:10];
+    UIBarButtonItem *rightSpace = [self fixedSpaceBarButtonItemWithWidth:12.5];
     UIBarButtonItem *editButton = [self editBarButtonItemForEditing:editing];
     UIBarButtonItem *countDisplayButton =
         [self countDisplayBarButtonItemWithText:countDisplayText];
 
     if (editing) {
-        UIBarButtonItem *addPlaceholderButton =
-            [self fixedWidthPlaceholderBarButtonItemWithWidth:[self rightBarAddSlotWidth]];
-
-        return @[rightSpace, editButton, countDisplayButton, addPlaceholderButton];
+        return @[rightSpace, editButton, countDisplayButton];
     }
 
     UIBarButtonItem *addButton = [self addBarButtonItem];
@@ -220,18 +187,30 @@
     return @[rightSpace, editButton, addButton, countDisplayButton];
 }
 
-- (UIView *)configuredTitleView {
-    UIView *customTitleView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 173, 44)];
-
-    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(-1, 0, 174, 44)];
+- (UIBarButtonItem *)titleBarButtonItem {
+    UILabel *titleLabel = [UILabel new];
     titleLabel.text = self.titleText;
-    titleLabel.textColor = [UIColor whiteColor];
+    titleLabel.textColor = [UIColor labelColor];
     titleLabel.font = [UIFont fontWithName:@"YouTubeSans-Bold" size:20];
     titleLabel.textAlignment = NSTextAlignmentLeft;
+    [titleLabel sizeToFit];
 
-    [customTitleView addSubview:titleLabel];
+    CGFloat titleOffset = -4.0;
 
-    return customTitleView;
+    UIView *container =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 0,
+                                                 CGRectGetWidth(titleLabel.bounds) - titleOffset,
+                                                 44.0)];
+    container.userInteractionEnabled = NO;
+
+    CGRect labelFrame = titleLabel.frame;
+    labelFrame.origin.x = titleOffset;
+    labelFrame.origin.y = floor((44.0 - CGRectGetHeight(labelFrame)) / 2.0);
+    titleLabel.frame = labelFrame;
+
+    [container addSubview:titleLabel];
+
+    return [[UIBarButtonItem alloc] initWithCustomView:container];
 }
 
 - (UIBarButtonItem *)selectAllToolbarButtonItemWithTitle:(NSString *)title {
@@ -247,7 +226,7 @@
 
 - (void)configureToolbarItems {
     UIBarButtonItem *selectAllButton =
-        [self selectAllToolbarButtonItemWithTitle:@"Select All"];
+        [self selectAllToolbarButtonItemWithTitle:TextHelperSelectAllToolbarTitle(NO)];
 
     UIBarButtonItem *flexibleSpace =
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
@@ -255,7 +234,7 @@
                                                       action:nil];
 
     UIBarButtonItem *deleteButton =
-        [[UIBarButtonItem alloc] initWithTitle:@"Delete"
+        [[UIBarButtonItem alloc] initWithTitle:TextHelperDeleteToolbarTitle()
                                          style:UIBarButtonItemStylePlain
                                         target:self
                                         action:@selector(deleteSelectedItemsTapped)];

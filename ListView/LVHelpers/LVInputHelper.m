@@ -1,33 +1,14 @@
 #import "LVInputHelper.h"
 #import "LVPrivate.h"
 #import "LVSearchHelper.h"
+#import "TextHelper.h"
 
 @implementation ListViewController (LVInputHelper)
 
 #pragma mark - Input Config
 
 - (NSDictionary *)inputConfigForEditing:(BOOL)isEditing {
-    NSString *title = isEditing ? @"Edit Item" : @"Add Item";
-    NSString *message = isEditing ? @"Edit text" : @"Enter text";
-    NSString *placeholder = @"Text";
-
-    if ([self.itemType isEqualToString:@"channel"]) {
-        title = isEditing ? @"Edit Channel" : @"Add Channel";
-        message = isEditing ? @"Edit the channel name or regex rule"
-                            : @"Enter a channel name or regex rule";
-        placeholder = @"Channel name";
-    } else if ([self.itemType isEqualToString:@"word"]) {
-        title = isEditing ? @"Edit Word" : @"Add Word";
-        message = isEditing ? @"Edit the blocked word or regex rule"
-                            : @"Enter a blocked word or regex rule";
-        placeholder = @"Blocked word";
-    }
-
-    return @{
-        @"title": title,
-        @"message": message,
-        @"placeholder": placeholder
-    };
+    return TextHelperInputConfigForItemType(self.itemType, isEditing);
 }
 
 - (UITextView *)configuredInputTextViewWithFrame:(CGRect)frame {
@@ -117,8 +98,7 @@
 
     // Duplicate
     if ([self.items containsObject:newText]) {
-        [self showToastWithMessage:
-            [NSString stringWithFormat:@"Already exists: \"%@\"", newText]];
+        [self showToastWithMessage:TextHelperAlreadyExistsToast(newText)];
         return;
     }
 
@@ -152,15 +132,13 @@
 
     // No changes
     if ([newText isEqualToString:currentText]) {
-        [self showToastWithMessage:
-            [NSString stringWithFormat:@"No changes: \"%@\"", currentText]];
+        [self showToastWithMessage:TextHelperNoChangesToast(currentText)];
         return;
     }
 
     // Duplicate
     if ([otherItems containsObject:newText]) {
-        [self showToastWithMessage:
-            [NSString stringWithFormat:@"Already exists: \"%@\"", newText]];
+        [self showToastWithMessage:TextHelperAlreadyExistsToast(newText)];
         return;
     }
 
@@ -197,14 +175,14 @@
     __weak typeof(self) weakSelf = self;
 
     [alert addAction:
-        [UIAlertAction actionWithTitle:@"Save"
+        [UIAlertAction actionWithTitle:TextHelperSaveActionTitle()
                                  style:UIAlertActionStyleDefault
                                handler:^(UIAlertAction *action) {
         [weakSelf handleAddInputSaveWithTextView:textView];
     }]];
 
     [alert addAction:
-        [UIAlertAction actionWithTitle:@"Cancel"
+        [UIAlertAction actionWithTitle:TextHelperCancelActionTitle()
                                  style:UIAlertActionStyleCancel
                                handler:nil]];
 
@@ -229,7 +207,7 @@
     __weak typeof(self) weakSelf = self;
 
     [alert addAction:
-        [UIAlertAction actionWithTitle:@"Save"
+        [UIAlertAction actionWithTitle:TextHelperSaveActionTitle()
                                  style:UIAlertActionStyleDefault
                                handler:^(UIAlertAction *action) {
         [weakSelf handleEditInputSaveWithTextView:textView
@@ -238,7 +216,7 @@
     }]];
 
     [alert addAction:
-        [UIAlertAction actionWithTitle:@"Cancel"
+        [UIAlertAction actionWithTitle:TextHelperCancelActionTitle()
                                  style:UIAlertActionStyleCancel
                                handler:nil]];
 

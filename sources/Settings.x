@@ -1,6 +1,7 @@
 #import "Settings.h"
 #import "ListViewController.h"
 #import "ToastHelper.h"
+#import "TextHelper.h"
 #import "Util.h"
 
 %hook YTAppSettingsPresentationData
@@ -35,11 +36,11 @@ typedef struct {
     YTSettingsViewController *delegate = [self valueForKey:@"_settingsViewControllerDelegate"];
     NSMutableArray *sectionItems       = [NSMutableArray array];
 
-    SECTION_HEADER(@"Gonerino Settings");
+    SECTION_HEADER(TextHelperGonerinoSettingsHeaderTitle());
 
     YTSettingsSectionItem *showButtonToggle = [%c(YTSettingsSectionItem)
-            switchItemWithTitle:@"Show Gonerino Button"
-               titleDescription:@"Display Gonerino toggle button in top navbar"
+            switchItemWithTitle:TextHelperShowGonerinoButtonTitle()
+               titleDescription:TextHelperShowGonerinoButtonDescription()
         accessibilityIdentifier:nil
                        switchOn:[[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoShowButton"] == nil
                                     ? YES
@@ -48,15 +49,15 @@ typedef struct {
                         [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoShowButton"];
                         [[NSUserDefaults standardUserDefaults] synchronize];
                         [self showGonerinoToastWithMessage:
-                            [NSString stringWithFormat:@"Gonerino button %@", enabled ? @"shown" : @"hidden"]];
+                            TextHelperGonerinoButtonVisibilityToast(enabled)];
                         return YES;
                     }
                   settingItemId:0];
     [sectionItems addObject:showButtonToggle];
 
     YTSettingsSectionItem *useCustomToastToggle = [%c(YTSettingsSectionItem)
-            switchItemWithTitle:@"Use Gonerino Toast"
-               titleDescription:@"Use Gonerino's custom toast instead of YouTube's default toast"
+            switchItemWithTitle:TextHelperUseGonerinoToastTitle()
+               titleDescription:TextHelperUseGonerinoToastDescription()
         accessibilityIdentifier:nil
                        switchOn:[[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoUseCustomToast"] == nil
                                     ? YES
@@ -65,25 +66,23 @@ typedef struct {
                         [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoUseCustomToast"];
                         [[NSUserDefaults standardUserDefaults] synchronize];
                         [self showGonerinoToastWithMessage:
-                            enabled ? @"Using Gonerino toast" : @"Using YouTube toast"];
+                            TextHelperToastModeToast(enabled)];
                         return YES;
                     }
                   settingItemId:0];
     [sectionItems addObject:useCustomToastToggle];
 
-    // picker logic WIP
     NSUInteger channelCount               = [[ChannelManager sharedInstance] blockedChannels].count;
     YTSettingsSectionItem *manageChannels = [%c(YTSettingsSectionItem)
-                  itemWithTitle:@"Manage Channels"
-               titleDescription:[NSString stringWithFormat:@"%lu blocked channel%@", (unsigned long)channelCount,
-                                                           channelCount == 1 ? @"" : @"s"]
+                  itemWithTitle:TextHelperManageChannelsTitle()
+               titleDescription:TextHelperBlockedCountDescription(@"channel", channelCount)
         accessibilityIdentifier:nil
                 detailTextBlock:nil
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
 
                         ListViewController *vc = [ListViewController new];
 
-                        vc.titleText = @"Manage Channels";
+                        vc.titleText = TextHelperManageChannelsTitle();
                         vc.itemType = @"channel";
                         vc.loadItemsBlock = ^NSArray *{
                             return [[ChannelManager sharedInstance] blockedChannels];
@@ -91,7 +90,7 @@ typedef struct {
                         vc.removeItemBlock = ^(NSString *text) {
                             [[ChannelManager sharedInstance] removeBlockedChannel:text];
                             [self showGonerinoToastWithMessage:
-                                [NSString stringWithFormat:@"Deleted \"%@\"", text]];
+                                TextHelperDeletedQuotedToast(text)];
                         };
                         vc.removeSelectedItemsBlock = ^(NSArray<NSString *> *texts) {
                             NSMutableArray *updatedChannels =
@@ -105,7 +104,7 @@ typedef struct {
 
                             if (texts.count == 1) {
                                 [self showGonerinoToastWithMessage:
-                                    [NSString stringWithFormat:@"Deleted \"%@\"", texts.firstObject]];
+                                    TextHelperDeletedQuotedToast(texts.firstObject)];
                             } else {
                                 [self showMultipleDeleteToastForItemType:@"channel" count:texts.count];
                             }
@@ -132,7 +131,7 @@ typedef struct {
                             [[ChannelManager sharedInstance] addBlockedChannel:newText];
 
                             [self showGonerinoToastWithMessage:
-                                [NSString stringWithFormat:@"Added \"%@\"", newText]];
+                                TextHelperAddedQuotedToast(newText)];
                         };
 
                         vc.editItemBlock = ^(NSInteger index, NSString *oldText, NSString *newText) {
@@ -150,7 +149,7 @@ typedef struct {
                             [[ChannelManager sharedInstance] setBlockedChannels:updatedChannels];
 
                             [self showGonerinoToastWithMessage:
-                                [NSString stringWithFormat:@"Edited \"%@\" → \"%@\"", oldText, newText]];
+                                TextHelperEditedToast(oldText, newText)];
                         };
 
                         YTSettingsViewController *delegate =
@@ -165,15 +164,14 @@ typedef struct {
 
     NSUInteger videoCount               = [[VideoManager sharedInstance] blockedVideos].count;
     YTSettingsSectionItem *manageVideos = [%c(YTSettingsSectionItem)
-                  itemWithTitle:@"Manage Videos"
-               titleDescription:[NSString stringWithFormat:@"%lu blocked video%@", (unsigned long)videoCount,
-                                                           videoCount == 1 ? @"" : @"s"]
+                  itemWithTitle:TextHelperManageVideosTitle()
+               titleDescription:TextHelperBlockedCountDescription(@"video", videoCount)
         accessibilityIdentifier:nil
                 detailTextBlock:nil
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
                         NSArray *blockedVideos = [[VideoManager sharedInstance] blockedVideos];
                         if (blockedVideos.count == 0) {
-                            [self showGonerinoToastWithMessage:@"No blocked videos"];
+                            [self showGonerinoToastWithMessage:TextHelperNoBlockedVideosToast()];
                             return YES;
                         }
 
@@ -181,7 +179,7 @@ typedef struct {
 
                         [rows addObject:[%c(YTSettingsSectionItem)
                                                       itemWithTitle:@"\t"
-                                                   titleDescription:@"Blocked videos"
+                                                   titleDescription:TextHelperBlockedVideosRowDescription()
                                             accessibilityIdentifier:nil
                                                     detailTextBlock:nil
                                                         selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
@@ -192,26 +190,22 @@ typedef struct {
                             [rows
                                 addObject:
                                     [%c(YTSettingsSectionItem)
-                                                  itemWithTitle:videoInfo[@"channel"] ?: @"Unknown Channel"
-                                               titleDescription:videoInfo[@"title"] ?: @"Unknown Title"
+                                                  itemWithTitle:videoInfo[@"channel"] ?: TextHelperUnknownChannelText()
+                                               titleDescription:videoInfo[@"title"] ?: TextHelperUnknownTitleText()
                                         accessibilityIdentifier:nil
                                                 detailTextBlock:nil
                                                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
                                                         YTSettingsViewController *settingsVC =
                                                             [self valueForKey:@"_settingsViewControllerDelegate"];
                                                         UIAlertController *alertController = [UIAlertController
-                                                            alertControllerWithTitle:@"Delete Video"
-                                                                             message:[NSString
-                                                                                         stringWithFormat:
-                                                                                             @"Are you sure you want "
-                                                                                             @"to delete '%@'?",
-                                                                                             videoInfo[@"title"]]
+                                                            alertControllerWithTitle:TextHelperDeleteTitle(@"video", 1)
+                                                                             message:TextHelperDeleteMessage(@"video", 1, videoInfo[@"title"])
                                                                       preferredStyle:UIAlertControllerStyleAlert];
 
                                                         [alertController
                                                             addAction:
                                                                 [UIAlertAction
-                                                                    actionWithTitle:@"Delete"
+                                                                    actionWithTitle:TextHelperDeleteActionTitle()
                                                                               style:UIAlertActionStyleDestructive
                                                                             handler:^(UIAlertAction *action) {
                                                                                 [[VideoManager sharedInstance] removeBlockedVideo:videoInfo[@"id"]];
@@ -225,13 +219,12 @@ typedef struct {
                                                                                 [generator impactOccurred];
 
                                                                                 [self showGonerinoToastWithMessage:
-                                                                                    [NSString stringWithFormat:@"Deleted %@",
-                                                                                                               videoInfo[@"title"]]];
+                                                                                    TextHelperDeletedPlainToast(videoInfo[@"title"])];
                                                                             }]];
 
                                                         [alertController
                                                             addAction:[UIAlertAction
-                                                                          actionWithTitle:@"Cancel"
+                                                                          actionWithTitle:TextHelperCancelActionTitle()
                                                                                     style:UIAlertActionStyleCancel
                                                                                   handler:nil]];
 
@@ -244,7 +237,7 @@ typedef struct {
 
                         YTSettingsViewController *settingsVC   = [self valueForKey:@"_settingsViewControllerDelegate"];
                         YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc]
-                              initWithNavTitle:@"Manage Videos"
+                              initWithNavTitle:TextHelperManageVideosTitle()
                             pickerSectionTitle:nil
                                           rows:rows
                              selectedItemIndex:NSNotFound
@@ -258,19 +251,17 @@ typedef struct {
                     }];
     [sectionItems addObject:manageVideos];
 
-    // picker logic WIP
     NSUInteger wordCount               = [[WordManager sharedInstance] blockedWords].count;
     YTSettingsSectionItem *manageWords = [%c(YTSettingsSectionItem)
-                  itemWithTitle:@"Manage Words"
-               titleDescription:[NSString stringWithFormat:@"%lu blocked word%@", (unsigned long)wordCount,
-                                                           wordCount == 1 ? @"" : @"s"]
+                  itemWithTitle:TextHelperManageWordsTitle()
+               titleDescription:TextHelperBlockedCountDescription(@"word", wordCount)
         accessibilityIdentifier:nil
                 detailTextBlock:nil
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
 
                         ListViewController *vc = [ListViewController new];
 
-                        vc.titleText = @"Manage Words";
+                        vc.titleText = TextHelperManageWordsTitle();
                         vc.itemType = @"word";
                         vc.loadItemsBlock = ^NSArray *{
                             return [[WordManager sharedInstance] blockedWords];
@@ -278,7 +269,7 @@ typedef struct {
                         vc.removeItemBlock = ^(NSString *text) {
                             [[WordManager sharedInstance] removeBlockedWord:text];
                             [self showGonerinoToastWithMessage:
-                                [NSString stringWithFormat:@"Deleted \"%@\"", text]];
+                                TextHelperDeletedQuotedToast(text)];
                         };
                         vc.removeSelectedItemsBlock = ^(NSArray<NSString *> *texts) {
                             NSMutableArray *updatedWords =
@@ -292,7 +283,7 @@ typedef struct {
 
                             if (texts.count == 1) {
                                 [self showGonerinoToastWithMessage:
-                                    [NSString stringWithFormat:@"Deleted \"%@\"", texts.firstObject]];
+                                    TextHelperDeletedQuotedToast(texts.firstObject)];
                             } else {
                                 [self showMultipleDeleteToastForItemType:@"word" count:texts.count];
                             }
@@ -319,7 +310,7 @@ typedef struct {
                             [[WordManager sharedInstance] addBlockedWord:newText];
 
                             [self showGonerinoToastWithMessage:
-                                [NSString stringWithFormat:@"Added \"%@\"", newText]];
+                                TextHelperAddedQuotedToast(newText)];
                         };
 
                         vc.editItemBlock = ^(NSInteger index, NSString *oldText, NSString *newText) {
@@ -337,7 +328,7 @@ typedef struct {
                             [[WordManager sharedInstance] setBlockedWords:updatedWords];
 
                             [self showGonerinoToastWithMessage:
-                                [NSString stringWithFormat:@"Edited \"%@\" → \"%@\"", oldText, newText]];
+                                TextHelperEditedToast(oldText, newText)];
                         };
 
                         YTSettingsViewController *delegate =
@@ -351,40 +342,38 @@ typedef struct {
     [sectionItems addObject:manageWords];
 
     YTSettingsSectionItem *blockPeopleWatched = [%c(YTSettingsSectionItem)
-            switchItemWithTitle:@"Block 'People also watched this video'"
-               titleDescription:@"Remove 'People also watched' suggestions"
+            switchItemWithTitle:TextHelperBlockPeopleWatchedTitle()
+               titleDescription:TextHelperBlockPeopleWatchedDescription()
         accessibilityIdentifier:nil
                        switchOn:[[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPeopleWatched"]
                     switchBlock:^BOOL(YTSettingsCell *cell, BOOL enabled) {
                         [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoPeopleWatched"];
                         [self showGonerinoToastWithMessage:
-                            [NSString stringWithFormat:@"'People also watched' %@",
-                                                       enabled ? @"blocked" : @"unblocked"]];
+                            TextHelperPeopleWatchedToggleToast(enabled)];
                         return YES;
                     }
                   settingItemId:0];
     [sectionItems addObject:blockPeopleWatched];
 
     YTSettingsSectionItem *blockMightLike = [%c(YTSettingsSectionItem)
-            switchItemWithTitle:@"Block 'You might also like this'"
-               titleDescription:@"Remove 'You might also like this' suggestions"
+            switchItemWithTitle:TextHelperBlockMightLikeTitle()
+               titleDescription:TextHelperBlockMightLikeDescription()
         accessibilityIdentifier:nil
                        switchOn:[[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoMightLike"]
                     switchBlock:^BOOL(YTSettingsCell *cell, BOOL enabled) {
                         [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoMightLike"];
                         [self showGonerinoToastWithMessage:
-                            [NSString stringWithFormat:@"'You might also like' %@",
-                                                       enabled ? @"blocked" : @"unblocked"]];
+                            TextHelperMightLikeToggleToast(enabled)];
                         return YES;
                     }
                   settingItemId:0];
     [sectionItems addObject:blockMightLike];
 
-    SECTION_HEADER(@"Manage Settings");
+    SECTION_HEADER(TextHelperManageSettingsHeaderTitle());
 
     YTSettingsSectionItem *exportSettings = [%c(YTSettingsSectionItem)
-                  itemWithTitle:@"Export Settings"
-               titleDescription:@"Export settings to a plist file"
+                  itemWithTitle:TextHelperExportSettingsTitle()
+               titleDescription:TextHelperExportSettingsDescription()
         accessibilityIdentifier:nil
                 detailTextBlock:nil
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
@@ -423,8 +412,8 @@ typedef struct {
     [sectionItems addObject:exportSettings];
 
     YTSettingsSectionItem *importSettings = [%c(YTSettingsSectionItem)
-                  itemWithTitle:@"Import Settings"
-               titleDescription:@"Import settings from a plist file"
+                  itemWithTitle:TextHelperImportSettingsTitle()
+               titleDescription:TextHelperImportSettingsDescription()
         accessibilityIdentifier:nil
                 detailTextBlock:nil
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
@@ -440,21 +429,20 @@ typedef struct {
                     }];
     [sectionItems addObject:importSettings];
 
-    SECTION_HEADER(@"About");
+    SECTION_HEADER(TextHelperAboutHeaderTitle());
 
     [sectionItems
-        addObject:[%c(YTSettingsSectionItem) itemWithTitle:@"GitHub"
-                                                     titleDescription:@"View source code and report issues"
-                                              accessibilityIdentifier:nil
-                                                      detailTextBlock:nil
-                                                          selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
-                                                              return [%c(YTUIUtils)
-                                                                  openURL:[NSURL URLWithString:@"https://github.com/"
-                                                                                               @"castdrian/Gonerino"]];
-                                                          }]];
+        addObject:[%c(YTSettingsSectionItem) itemWithTitle:TextHelperGitHubTitle()
+                                          titleDescription:TextHelperGitHubDescription()
+                                   accessibilityIdentifier:nil
+                                           detailTextBlock:nil
+                                               selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
+                                                    return [%c(YTUIUtils)
+                                                        openURL:[NSURL URLWithString:@"https://github.com/castdrian/Gonerino"]];
+                                                            }]];
 
     [sectionItems
-        addObject:[%c(YTSettingsSectionItem) itemWithTitle:@"Version"
+        addObject:[%c(YTSettingsSectionItem) itemWithTitle:TextHelperVersionTitle()
                       titleDescription:nil
                       accessibilityIdentifier:nil
                       detailTextBlock:^NSString *() { return [NSString stringWithFormat:@"v%@", TWEAK_VERSION]; }
@@ -470,14 +458,14 @@ typedef struct {
 
         [delegate setSectionItems:sectionItems
                       forCategory:GonerinoSection
-                            title:@"Gonerino"
+                            title:TextHelperGonerinoSectionTitle()
                              icon:icon
                  titleDescription:nil
                      headerHidden:NO];
     } else {
         [delegate setSectionItems:sectionItems
                       forCategory:GonerinoSection
-                            title:@"Gonerino"
+                            title:TextHelperGonerinoSectionTitle()
                  titleDescription:nil
                      headerHidden:NO];
     }
@@ -538,7 +526,7 @@ typedef struct {
         [url stopAccessingSecurityScopedResource];
 
         if (!data || error) {
-            [self showGonerinoToastWithMessage:@"Failed to read settings file"];
+            [self showGonerinoToastWithMessage:TextHelperFailedToReadSettingsFileToast()];
             return;
         }
 
@@ -548,7 +536,7 @@ typedef struct {
                                                                              error:&error];
 
         if (!settings || error) {
-            [self showGonerinoToastWithMessage:@"Invalid settings file format"];
+            [self showGonerinoToastWithMessage:TextHelperInvalidSettingsFileFormatToast()];
             return;
         }
 
@@ -582,7 +570,7 @@ typedef struct {
 
             [[NSUserDefaults standardUserDefaults] synchronize];
             [self reloadGonerinoSection];
-            [self showGonerinoToastWithMessage:@"Settings imported successfully"];
+            [self showGonerinoToastWithMessage:TextHelperSettingsImportedSuccessfullyToast()];
         };
 
         NSArray *channels = settings[@"blockedChannels"];
@@ -608,13 +596,13 @@ typedef struct {
                     [[VideoManager sharedInstance] setBlockedVideos:videos];
                     continueImport();
                 } else {
-                    [self showGonerinoToastWithMessage:@"Format outdated, blocked videos will not be imported"];
+                    [self showGonerinoToastWithMessage:TextHelperOutdatedBlockedVideosFormatToast()];
 
                     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
                                    dispatch_get_main_queue(), ^{ continueImport(); });
                 }
             } else {
-                [self showGonerinoToastWithMessage:@"Format outdated, blocked videos will not be imported"];
+                [self showGonerinoToastWithMessage:TextHelperOutdatedBlockedVideosFormatToast()];
 
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
                                dispatch_get_main_queue(), ^{ continueImport(); });
@@ -638,13 +626,13 @@ typedef struct {
         settings[@"blockMightLike"] = @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoMightLike"]);
 
         [settings writeToURL:url atomically:YES];
-        [self showGonerinoToastWithMessage:@"Settings exported successfully"];
+        [self showGonerinoToastWithMessage:TextHelperSettingsExportedSuccessfullyToast()];
     }
 }
 
 %new
 - (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
-    NSString *message = isImportOperation ? @"Import cancelled" : @"Export cancelled";
+    NSString *message = TextHelperImportExportCancelledToast(isImportOperation);
     [self showGonerinoToastWithMessage:message];
 }
 
@@ -655,10 +643,7 @@ typedef struct {
 
 %new
 - (void)showMultipleDeleteToastForItemType:(NSString *)itemType count:(NSUInteger)count {
-    NSString *message = [NSString stringWithFormat:@"Deleted %lu %@%@",
-                                                   (unsigned long)count,
-                                                   itemType,
-                                                   count == 1 ? @"" : @"s"];
+    NSString *message = TextHelperMultipleDeleteToast(itemType, count);
     [self showGonerinoToastWithMessage:message];
 }
 
