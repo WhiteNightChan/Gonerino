@@ -2,6 +2,7 @@
 #import "LVPrivate.h"
 #import "LVResolveHelper.h"
 #import "LVSearchHelper.h"
+#import "TextHelper.h"
 
 @implementation ListViewController (LVDeleteHelper)
 
@@ -63,14 +64,14 @@
 
 - (void)updateSelectAllToolbarButtonState {
     if (!self.tableView.editing) {
-        [self setSelectAllToolbarButtonTitle:@"Select All"];
+        [self setSelectAllToolbarButtonTitle:TextHelperSelectAllToolbarTitle(NO)];
         [self setSelectAllToolbarButtonEnabled:NO];
         return;
     }
 
     NSInteger totalRowCount = [self selectableRowCountForSelectionActions];
     if (totalRowCount == 0) {
-        [self setSelectAllToolbarButtonTitle:@"Select All"];
+        [self setSelectAllToolbarButtonTitle:TextHelperSelectAllToolbarTitle(NO)];
         [self setSelectAllToolbarButtonEnabled:NO];
         return;
     }
@@ -78,9 +79,9 @@
     [self setSelectAllToolbarButtonEnabled:YES];
 
     if ([self areAllRowsSelectedForSelectionActions]) {
-        [self setSelectAllToolbarButtonTitle:@"Deselect All"];
+        [self setSelectAllToolbarButtonTitle:TextHelperSelectAllToolbarTitle(YES)];
     } else {
-        [self setSelectAllToolbarButtonTitle:@"Select All"];
+        [self setSelectAllToolbarButtonTitle:TextHelperSelectAllToolbarTitle(NO)];
     }
 }
 
@@ -128,35 +129,22 @@
         return;
     }
 
-    NSString *type = self.itemType.length > 0 ? self.itemType : @"item";
-    NSString *pluralType = [type stringByAppendingString:@"s"];
-
-    NSString *title = nil;
-    NSString *message = nil;
+    NSString *selectedText = nil;
 
     if (selectedIndexPaths.count == 1) {
         NSIndexPath *indexPath = selectedIndexPaths.firstObject;
         NSDictionary *entry = [self resolvedEntryForIndexPath:indexPath];
-        NSString *selectedText = entry[@"text"];
-
-        title = [NSString stringWithFormat:@"Delete %@",
-                                           [type capitalizedString]];
-
-        if (selectedText.length > 0) {
-            message = [NSString stringWithFormat:@"Are you sure you want to delete \"%@\"?",
-                                                     selectedText];
-        } else {
-            message = [NSString stringWithFormat:@"Are you sure you want to delete this %@?",
-                                                     type];
+        if ([entry[@"text"] isKindOfClass:[NSString class]]) {
+            selectedText = entry[@"text"];
         }
-    } else {
-        title = [NSString stringWithFormat:@"Delete %@",
-                                           [pluralType capitalizedString]];
-
-        message = [NSString stringWithFormat:@"Are you sure you want to delete %lu %@?",
-                                                   (unsigned long)selectedIndexPaths.count,
-                                                   pluralType];
     }
+
+    NSString *title =
+        TextHelperDeleteTitle(self.itemType, selectedIndexPaths.count);
+    NSString *message =
+        TextHelperDeleteMessage(self.itemType,
+                                selectedIndexPaths.count,
+                                selectedText);
 
     UIAlertController *alertController =
         [UIAlertController alertControllerWithTitle:title
@@ -164,14 +152,14 @@
                                      preferredStyle:UIAlertControllerStyleAlert];
 
     [alertController addAction:
-        [UIAlertAction actionWithTitle:@"Delete"
+        [UIAlertAction actionWithTitle:TextHelperDeleteActionTitle()
                                  style:UIAlertActionStyleDestructive
                                handler:^(UIAlertAction *action) {
         [self performDeleteSelectedItems];
     }]];
 
     [alertController addAction:
-        [UIAlertAction actionWithTitle:@"Cancel"
+        [UIAlertAction actionWithTitle:TextHelperCancelActionTitle()
                                  style:UIAlertActionStyleCancel
                                handler:nil]];
 

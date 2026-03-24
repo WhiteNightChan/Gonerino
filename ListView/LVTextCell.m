@@ -18,22 +18,21 @@
         _itemLabel.numberOfLines = 0;
         _itemLabel.lineBreakMode = NSLineBreakByWordWrapping;
         _itemLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
-        _itemLabel.textColor = UIColor.whiteColor;
+        _itemLabel.textColor = UIColor.labelColor;
         _itemLabel.backgroundColor = UIColor.clearColor;
 
         self.backgroundColor = UIColor.clearColor;
         self.contentView.backgroundColor = UIColor.clearColor;
 
         UIView *selectedView = [UIView new];
-        selectedView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.12];
+        selectedView.backgroundColor = [UIColor.labelColor colorWithAlphaComponent:0.12];
         selectedView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         self.selectedBackgroundView = selectedView;
 
         UIView *multipleSelectedView = [UIView new];
-        multipleSelectedView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.10];
+        multipleSelectedView.backgroundColor = [UIColor.labelColor colorWithAlphaComponent:0.10];
         multipleSelectedView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         self.multipleSelectionBackgroundView = multipleSelectedView;
-
         [self.contentView addSubview:_itemLabel];
 
         [NSLayoutConstraint activateConstraints:@[

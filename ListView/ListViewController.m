@@ -1,5 +1,6 @@
 #import "ListViewController.h"
 #import "ToastHelper.h"
+#import "TextHelper.h"
 #import "LVTextCell.h"
 
 #import "LVHelpers/LVPrivate.h"
@@ -29,8 +30,6 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    self.title = self.titleText;
-
     [self loadItemsFromSourceIfNeeded];
 
     self.filteredItems = [NSMutableArray array];
@@ -50,8 +49,8 @@
 
     self.navigationItem.hidesBackButton = YES;
     self.navigationItem.leftBarButtonItems = @[
-        [self fixedSpaceBarButtonItemWithWidth:10],
-        [self backBarButtonItem]
+        [self backBarButtonItem],
+        [self titleBarButtonItem]
     ];
     self.navigationItem.rightBarButtonItems =
         [self rightBarButtonItemsForEditing:NO
@@ -63,7 +62,6 @@
 
     [self configureLongPressGesture];
 
-    self.navigationItem.titleView = [self configuredTitleView];
     [self updateEmptyStateIfNeeded];
 }
 
@@ -102,7 +100,7 @@
 - (UILabel *)emptyStateLabelWithText:(NSString *)text {
     UILabel *label = [UILabel new];
     label.text = text;
-    label.textColor = [UIColor colorWithWhite:1.0 alpha:0.45];
+    label.textColor = [UIColor secondaryLabelColor];
     label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
     label.textAlignment = NSTextAlignmentCenter;
     label.numberOfLines = 0;
@@ -141,10 +139,10 @@
 
     if (self.isSearching) {
         if (self.filteredItems.count == 0) {
-            emptyText = @"No results";
+            emptyText = TextHelperNoResultsText();
         }
     } else if (self.items.count == 0) {
-        emptyText = @"No items";
+        emptyText = TextHelperNoItemsText();
     }
 
     if (emptyText.length == 0) {
@@ -181,7 +179,7 @@
                                           (long)visibleCount];
     }
 
-    return [NSString stringWithFormat:@"%ld items", (long)visibleCount];
+    return TextHelperCountDisplayText((NSUInteger)visibleCount);
 }
 
 - (void)updateRightBarButtonItemsForCurrentState {
@@ -338,8 +336,7 @@ moveRowAtIndexPath:(NSIndexPath *)fromIndexPath
 
     UIPasteboard.generalPasteboard.string = text;
 
-    [self showToastWithMessage:
-        [NSString stringWithFormat:@"Copied \"%@\"", text]];
+    [self showToastWithMessage:TextHelperCopiedToast(text)];
 }
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
