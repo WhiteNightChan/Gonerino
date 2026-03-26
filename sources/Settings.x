@@ -1,4 +1,5 @@
 #import "Settings.h"
+#import "SettingsExchangeHelper.h"
 #import "ListViewController.h"
 #import "ToastHelper.h"
 #import "TextHelper.h"
@@ -18,17 +19,6 @@
 
 %end
 
-typedef struct {
-    NSString *pickerTitle;
-    NSString *rowDescription;
-    NSString *addTitle;
-    NSString *editTitle;
-    NSString *deleteTitle;
-    NSString *addDescription;
-    NSString *editDescription;
-    NSString *placeholder;
-} GonerinoPickerConfig;
-
 %hook YTSettingsSectionItemManager
 
 %new
@@ -37,40 +27,6 @@ typedef struct {
     NSMutableArray *sectionItems       = [NSMutableArray array];
 
     SECTION_HEADER(TextHelperGonerinoSettingsHeaderTitle());
-
-    YTSettingsSectionItem *showButtonToggle = [%c(YTSettingsSectionItem)
-            switchItemWithTitle:TextHelperShowGonerinoButtonTitle()
-               titleDescription:TextHelperShowGonerinoButtonDescription()
-        accessibilityIdentifier:nil
-                       switchOn:[[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoShowButton"] == nil
-                                    ? YES
-                                    : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoShowButton"]
-                    switchBlock:^BOOL(YTSettingsCell *cell, BOOL enabled) {
-                        [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoShowButton"];
-                        [[NSUserDefaults standardUserDefaults] synchronize];
-                        [self showGonerinoToastWithMessage:
-                            TextHelperGonerinoButtonVisibilityToast(enabled)];
-                        return YES;
-                    }
-                  settingItemId:0];
-    [sectionItems addObject:showButtonToggle];
-
-    YTSettingsSectionItem *useCustomToastToggle = [%c(YTSettingsSectionItem)
-            switchItemWithTitle:TextHelperUseGonerinoToastTitle()
-               titleDescription:TextHelperUseGonerinoToastDescription()
-        accessibilityIdentifier:nil
-                       switchOn:[[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoUseCustomToast"] == nil
-                                    ? YES
-                                    : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoUseCustomToast"]
-                    switchBlock:^BOOL(YTSettingsCell *cell, BOOL enabled) {
-                        [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoUseCustomToast"];
-                        [[NSUserDefaults standardUserDefaults] synchronize];
-                        [self showGonerinoToastWithMessage:
-                            TextHelperToastModeToast(enabled)];
-                        return YES;
-                    }
-                  settingItemId:0];
-    [sectionItems addObject:useCustomToastToggle];
 
     NSUInteger channelCount               = [[ChannelManager sharedInstance] blockedChannels].count;
     YTSettingsSectionItem *manageChannels = [%c(YTSettingsSectionItem)
@@ -371,42 +327,47 @@ typedef struct {
 
     SECTION_HEADER(TextHelperManageSettingsHeaderTitle());
 
+    YTSettingsSectionItem *showButtonToggle = [%c(YTSettingsSectionItem)
+            switchItemWithTitle:TextHelperShowGonerinoButtonTitle()
+               titleDescription:TextHelperShowGonerinoButtonDescription()
+        accessibilityIdentifier:nil
+                       switchOn:[[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoShowButton"] == nil
+                                    ? YES
+                                    : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoShowButton"]
+                    switchBlock:^BOOL(YTSettingsCell *cell, BOOL enabled) {
+                        [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoShowButton"];
+                        [[NSUserDefaults standardUserDefaults] synchronize];
+                        [self showGonerinoToastWithMessage:
+                            TextHelperGonerinoButtonVisibilityToast(enabled)];
+                        return YES;
+                    }
+                  settingItemId:0];
+    [sectionItems addObject:showButtonToggle];
+
+    YTSettingsSectionItem *useCustomToastToggle = [%c(YTSettingsSectionItem)
+            switchItemWithTitle:TextHelperUseGonerinoToastTitle()
+               titleDescription:TextHelperUseGonerinoToastDescription()
+        accessibilityIdentifier:nil
+                       switchOn:[[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoUseCustomToast"] == nil
+                                    ? YES
+                                    : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoUseCustomToast"]
+                    switchBlock:^BOOL(YTSettingsCell *cell, BOOL enabled) {
+                        [[NSUserDefaults standardUserDefaults] setBool:enabled forKey:@"GonerinoUseCustomToast"];
+                        [[NSUserDefaults standardUserDefaults] synchronize];
+                        [self showGonerinoToastWithMessage:
+                            TextHelperToastModeToast(enabled)];
+                        return YES;
+                    }
+                  settingItemId:0];
+    [sectionItems addObject:useCustomToastToggle];
+
     YTSettingsSectionItem *exportSettings = [%c(YTSettingsSectionItem)
                   itemWithTitle:TextHelperExportSettingsTitle()
                titleDescription:TextHelperExportSettingsDescription()
         accessibilityIdentifier:nil
                 detailTextBlock:nil
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
-                        YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
-
-                        NSMutableDictionary *settings = [NSMutableDictionary dictionary];
-                        settings[@"blockedChannels"]  = [[ChannelManager sharedInstance] blockedChannels];
-                        settings[@"blockedVideos"]    = [[VideoManager sharedInstance] blockedVideos];
-                        settings[@"blockedWords"]     = [[WordManager sharedInstance] blockedWords];
-                        settings[@"gonerinoEnabled"] =
-                            @([[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoEnabled"] == nil
-                                  ? YES
-                                  : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoEnabled"]);
-                        settings[@"useCustomToast"] =
-                            @([[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoUseCustomToast"] == nil
-                                  ? YES
-                                  : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoUseCustomToast"]);
-                        settings[@"blockPeopleWatched"] =
-                            @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPeopleWatched"]);
-                        settings[@"blockMightLike"] =
-                            @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoMightLike"]);
-
-                        NSURL *tempFileURL =
-                            [NSURL fileURLWithPath:[NSTemporaryDirectory()
-                                                       stringByAppendingPathComponent:@"gonerino_settings.plist"]];
-                        [settings writeToURL:tempFileURL atomically:YES];
-
-                        isImportOperation = NO;
-
-                        UIDocumentPickerViewController *picker =
-                            [[UIDocumentPickerViewController alloc] initForExportingURLs:@[tempFileURL]];
-                        picker.delegate = (id<UIDocumentPickerDelegate>)self;
-                        [settingsVC presentViewController:picker animated:YES completion:nil];
+                        [self presentGonerinoSettingsExportPicker];
                         return YES;
                     }];
     [sectionItems addObject:exportSettings];
@@ -417,14 +378,7 @@ typedef struct {
         accessibilityIdentifier:nil
                 detailTextBlock:nil
                     selectBlock:^BOOL(YTSettingsCell *cell, NSUInteger arg1) {
-                        YTSettingsViewController *settingsVC = [self valueForKey:@"_settingsViewControllerDelegate"];
-
-                        isImportOperation = YES;
-
-                        UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc]
-                            initForOpeningContentTypes:@[[UTType typeWithIdentifier:@"com.apple.property-list"]]];
-                        picker.delegate                        = (id<UIDocumentPickerDelegate>)self;
-                        [settingsVC presentViewController:picker animated:YES completion:nil];
+                        [self presentGonerinoSettingsImportPicker];
                         return YES;
                     }];
     [sectionItems addObject:importSettings];
@@ -510,131 +464,7 @@ typedef struct {
     });
 }
 
-%new
-- (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
-    if (urls.count == 0)
-        return;
 
-    NSURL *url                           = urls.firstObject;
-
-    if (isImportOperation) {
-        [url startAccessingSecurityScopedResource];
-
-        NSError *error = nil;
-        NSData *data   = [NSData dataWithContentsOfURL:url options:0 error:&error];
-
-        [url stopAccessingSecurityScopedResource];
-
-        if (!data || error) {
-            [self showGonerinoToastWithMessage:TextHelperFailedToReadSettingsFileToast()];
-            return;
-        }
-
-        NSDictionary *settings = [NSPropertyListSerialization propertyListWithData:data
-                                                                           options:NSPropertyListImmutable
-                                                                            format:NULL
-                                                                             error:&error];
-
-        if (!settings || error) {
-            [self showGonerinoToastWithMessage:TextHelperInvalidSettingsFileFormatToast()];
-            return;
-        }
-
-        void (^continueImport)(void) = ^{
-            NSArray *words = settings[@"blockedWords"];
-            if (words) {
-                [[WordManager sharedInstance] setBlockedWords:words];
-            }
-
-            NSNumber *peopleWatched = settings[@"blockPeopleWatched"];
-            if (peopleWatched) {
-                [[NSUserDefaults standardUserDefaults] setBool:[peopleWatched boolValue]
-                                                        forKey:@"GonerinoPeopleWatched"];
-            }
-
-            NSNumber *mightLike = settings[@"blockMightLike"];
-            if (mightLike) {
-                [[NSUserDefaults standardUserDefaults] setBool:[mightLike boolValue] forKey:@"GonerinoMightLike"];
-            }
-
-            NSNumber *gonerinoEnabled = settings[@"gonerinoEnabled"];
-            if (gonerinoEnabled) {
-                [[NSUserDefaults standardUserDefaults] setBool:[gonerinoEnabled boolValue] forKey:@"GonerinoEnabled"];
-            }
-
-            NSNumber *useCustomToast = settings[@"useCustomToast"];
-            if (useCustomToast) {
-                [[NSUserDefaults standardUserDefaults] setBool:[useCustomToast boolValue]
-                                                        forKey:@"GonerinoUseCustomToast"];
-            }
-
-            [[NSUserDefaults standardUserDefaults] synchronize];
-            [self reloadGonerinoSection];
-            [self showGonerinoToastWithMessage:TextHelperSettingsImportedSuccessfullyToast()];
-        };
-
-        NSArray *channels = settings[@"blockedChannels"];
-        if (channels) {
-            [[ChannelManager sharedInstance] setBlockedChannels:channels];
-        }
-
-        NSArray *videos = settings[@"blockedVideos"];
-        if (videos) {
-            if ([videos isKindOfClass:[NSArray class]]) {
-                BOOL isValidFormat = YES;
-                for (id videoEntry in videos) {
-                    if (![videoEntry isKindOfClass:[NSDictionary class]] ||
-                        ![videoEntry[@"id"] isKindOfClass:[NSString class]] ||
-                        ![videoEntry[@"title"] isKindOfClass:[NSString class]] ||
-                        ![videoEntry[@"channel"] isKindOfClass:[NSString class]] || [videoEntry count] != 3) {
-                        isValidFormat = NO;
-                        break;
-                    }
-                }
-
-                if (isValidFormat) {
-                    [[VideoManager sharedInstance] setBlockedVideos:videos];
-                    continueImport();
-                } else {
-                    [self showGonerinoToastWithMessage:TextHelperOutdatedBlockedVideosFormatToast()];
-
-                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
-                                   dispatch_get_main_queue(), ^{ continueImport(); });
-                }
-            } else {
-                [self showGonerinoToastWithMessage:TextHelperOutdatedBlockedVideosFormatToast()];
-
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
-                               dispatch_get_main_queue(), ^{ continueImport(); });
-            }
-        } else {
-            continueImport();
-        }
-    } else {
-        NSMutableDictionary *settings = [NSMutableDictionary dictionary];
-        settings[@"blockedChannels"]  = [[ChannelManager sharedInstance] blockedChannels];
-        settings[@"blockedVideos"]    = [[VideoManager sharedInstance] blockedVideos];
-        settings[@"blockedWords"]     = [[WordManager sharedInstance] blockedWords];
-        settings[@"gonerinoEnabled"]  = @([[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoEnabled"] == nil
-                                              ? YES
-                                              : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoEnabled"]);
-        settings[@"useCustomToast"]   = @([[NSUserDefaults standardUserDefaults] objectForKey:@"GonerinoUseCustomToast"] == nil
-                                              ? YES
-                                              : [[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoUseCustomToast"]);
-        settings[@"blockPeopleWatched"] =
-            @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoPeopleWatched"]);
-        settings[@"blockMightLike"] = @([[NSUserDefaults standardUserDefaults] boolForKey:@"GonerinoMightLike"]);
-
-        [settings writeToURL:url atomically:YES];
-        [self showGonerinoToastWithMessage:TextHelperSettingsExportedSuccessfullyToast()];
-    }
-}
-
-%new
-- (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
-    NSString *message = TextHelperImportExportCancelledToast(isImportOperation);
-    [self showGonerinoToastWithMessage:message];
-}
 
 %new
 - (void)showGonerinoToastWithMessage:(NSString *)message {

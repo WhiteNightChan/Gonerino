@@ -1,6 +1,18 @@
 #import "Tweak.h"
 #import "ToastHelper.h"
 
+@interface YTDefaultSheetController (GonerinoSafeResolve)
+- (id)gonerino_findVideoContextNodeFromNode:(id)node;
+- (id)gonerino_findDescendantNodeInNode:(id)node
+                              className:(NSString *)className
+                               maxDepth:(NSInteger)maxDepth;
+@end
+
+@interface NSObject (GonerinoNodeTraversal)
+- (id)supernode;
+- (id)parentNode;
+@end
+
 %hook YTAsyncCollectionView
 
 - (void)layoutSubviews {
@@ -64,10 +76,11 @@
         return;
     }
 
-    UIView *sourceView = [self valueForKey:@"sourceView"];
-    id node            = [sourceView valueForKey:@"asyncdisplaykit_node"];
+    UIView *sourceView  = [self valueForKey:@"sourceView"];
+    id node             = [sourceView valueForKey:@"asyncdisplaykit_node"];
+    id videoContextNode = [self gonerino_findVideoContextNodeFromNode:node];
 
-    if (!node || ![node debugDescription] || ![[node debugDescription] containsString:@"YTVideoWithContextNode"]) {
+    if (!videoContextNode) {
         return;
     }
 
@@ -96,26 +109,49 @@
                 handler:^(YTActionSheetAction *action) {
                     __strong typeof(self) strongSelf = weakSelf;
                     @try {
-                        UIView *sourceView = [strongSelf valueForKey:@"sourceView"];
-                        id node            = [sourceView valueForKey:@"asyncdisplaykit_node"];
+                        UIView *sourceView  = [strongSelf valueForKey:@"sourceView"];
+                        id node             = [sourceView valueForKey:@"asyncdisplaykit_node"];
+                        id videoContextNode = [strongSelf gonerino_findVideoContextNodeFromNode:node];
 
-                        if ([node respondsToSelector:@selector(subnodes)]) {
-                            for (id subnode in [node subnodes]) {
-                                if ([subnode isKindOfClass:NSClassFromString(@"YTInlinePlaybackPlayerNode")]) {
-                                    [Util extractVideoInfoFromNode:subnode
-                                                        completion:^(NSString *videoId, NSString *videoTitle,
-                                                                     NSString *ownerName) {
-                                                            if (ownerName) {
-                                                                [[ChannelManager sharedInstance]
-                                                                    addBlockedChannel:ownerName];
-                                                                GonerinoShowToast(
-                                                                    [NSString stringWithFormat:@"Blocked \"%@\"",
-                                                                                               ownerName]);
-                                                            }
-                                                        }];
-                                    break;
-                                }
-                            }
+                        if (!videoContextNode) {
+                            GonerinoShowToast(
+                                @"Couldn’t block channel\nReason: videoContextNode not found");
+                            return;
+                        }
+
+                        id inlinePlaybackNode =
+                            [strongSelf gonerino_findDescendantNodeInNode:videoContextNode
+                                                                className:@"YTInlinePlaybackPlayerNode"
+                                                                 maxDepth:8];
+
+                        if (!inlinePlaybackNode) {
+                            GonerinoShowToast(
+                                @"Couldn’t block channel\nReason: inlinePlaybackNode not found");
+                            return;
+                        }
+
+                        __block BOOL didComplete = NO;
+
+                        [Util extractVideoInfoFromNode:inlinePlaybackNode
+                                            completion:^(NSString *videoId, NSString *videoTitle,
+                                                         NSString *ownerName) {
+                                                didComplete = YES;
+
+                                                if (ownerName.length > 0) {
+                                                    [[ChannelManager sharedInstance]
+                                                        addBlockedChannel:ownerName];
+                                                    GonerinoShowToast(
+                                                        [NSString stringWithFormat:@"Blocked \"%@\"",
+                                                                                   ownerName]);
+                                                } else {
+                                                    GonerinoShowToast(
+                                                        @"Couldn’t block channel\nReason: ownerName missing");
+                                                }
+                                            }];
+
+                        if (!didComplete) {
+                            GonerinoShowToast(
+                                @"Couldn’t block channel\nReason: Util completion not called");
                         }
                     } @catch (NSException *e) {
                         NSLog(@"[Gonerino] Exception in block action: %@", e);
@@ -129,31 +165,54 @@
                 handler:^(YTActionSheetAction *action) {
                     __strong typeof(self) strongSelf = weakSelf;
                     @try {
-                        UIView *sourceView = [strongSelf valueForKey:@"sourceView"];
-                        id node            = [sourceView valueForKey:@"asyncdisplaykit_node"];
+                        UIView *sourceView  = [strongSelf valueForKey:@"sourceView"];
+                        id node             = [sourceView valueForKey:@"asyncdisplaykit_node"];
+                        id videoContextNode = [strongSelf gonerino_findVideoContextNodeFromNode:node];
 
-                        if ([node respondsToSelector:@selector(subnodes)]) {
-                            for (id subnode in [node subnodes]) {
-                                if ([subnode isKindOfClass:NSClassFromString(@"YTInlinePlaybackPlayerNode")]) {
-                                    [Util
-                                        extractVideoInfoFromNode:subnode
-                                                      completion:^(NSString *videoId, NSString *videoTitle,
-                                                                   NSString *ownerName) {
-                                                          if (videoId) {
-                                                              [[VideoManager sharedInstance] addBlockedVideo:videoId
-                                                                                                       title:videoTitle
-                                                                                                     channel:ownerName];
-                                                              GonerinoShowToast(
-                                                                  [NSString stringWithFormat:@"Blocked video: \"%@\"",
-                                                                                             videoTitle ?: videoId]);
-                                                              if ([strongSelf respondsToSelector:@selector(dismiss)]) {
-                                                                  [strongSelf dismiss];
-                                                              }
-                                                          }
-                                                      }];
-                                    break;
-                                }
-                            }
+                        if (!videoContextNode) {
+                            GonerinoShowToast(
+                                @"Couldn’t block video\nReason: videoContextNode not found");
+                            return;
+                        }
+
+                        id inlinePlaybackNode =
+                            [strongSelf gonerino_findDescendantNodeInNode:videoContextNode
+                                                                className:@"YTInlinePlaybackPlayerNode"
+                                                                 maxDepth:8];
+
+                        if (!inlinePlaybackNode) {
+                            GonerinoShowToast(
+                                @"Couldn’t block video\nReason: inlinePlaybackNode not found");
+                            return;
+                        }
+
+                        __block BOOL didComplete = NO;
+
+                        [Util
+                            extractVideoInfoFromNode:inlinePlaybackNode
+                                          completion:^(NSString *videoId, NSString *videoTitle,
+                                                       NSString *ownerName) {
+                                              didComplete = YES;
+
+                                              if (videoId.length > 0) {
+                                                  [[VideoManager sharedInstance] addBlockedVideo:videoId
+                                                                                           title:videoTitle
+                                                                                         channel:ownerName];
+                                                  GonerinoShowToast(
+                                                      [NSString stringWithFormat:@"Blocked video: \"%@\"",
+                                                                                 videoTitle ?: videoId]);
+                                                  if ([strongSelf respondsToSelector:@selector(dismiss)]) {
+                                                      [strongSelf dismiss];
+                                                  }
+                                              } else {
+                                                  GonerinoShowToast(
+                                                      @"Couldn’t block video\nReason: videoId missing");
+                                              }
+                                          }];
+
+                        if (!didComplete) {
+                            GonerinoShowToast(
+                                @"Couldn’t block video\nReason: Util completion not called");
                         }
                     } @catch (NSException *e) {
                         NSLog(@"[Gonerino] Exception in block action: %@", e);
@@ -163,6 +222,59 @@
     objc_setAssociatedObject(self, blockActionKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     [self addAction:blockChannelAction];
     [self addAction:blockVideoAction];
+}
+
+%new
+- (id)gonerino_findVideoContextNodeFromNode:(id)node {
+    id currentNode = node;
+    NSInteger depth = 0;
+
+    while (currentNode && depth < 10) {
+        if ([currentNode isKindOfClass:NSClassFromString(@"YTVideoWithContextNode")]) {
+            return currentNode;
+        }
+
+        if ([currentNode respondsToSelector:@selector(supernode)]) {
+            currentNode = [currentNode supernode];
+        } else if ([currentNode respondsToSelector:@selector(parentNode)]) { // 推測API
+            currentNode = [currentNode parentNode];
+        } else {
+            currentNode = nil;
+        }
+
+        depth++;
+    }
+
+    return nil;
+}
+
+%new
+- (id)gonerino_findDescendantNodeInNode:(id)node
+                              className:(NSString *)className
+                               maxDepth:(NSInteger)maxDepth {
+    if (!node || maxDepth < 0) {
+        return nil;
+    }
+
+    if ([node isKindOfClass:NSClassFromString(className)]) {
+        return node;
+    }
+
+    if (![node respondsToSelector:@selector(subnodes)]) {
+        return nil;
+    }
+
+    NSArray *subnodes = [node subnodes];
+    for (id subnode in subnodes) {
+        id foundNode = [self gonerino_findDescendantNodeInNode:subnode
+                                                     className:className
+                                                      maxDepth:maxDepth - 1];
+        if (foundNode) {
+            return foundNode;
+        }
+    }
+
+    return nil;
 }
 
 %new
