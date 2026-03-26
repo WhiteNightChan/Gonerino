@@ -80,6 +80,24 @@
         [NSCharacterSet whitespaceAndNewlineCharacterSet]];
 }
 
+- (NSString *)trimmedComparableTextFromString:(NSString *)text {
+    NSString *rawText = text ?: @"";
+
+    return [rawText stringByTrimmingCharactersInSet:
+        [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+}
+
+- (BOOL)items:(NSArray<NSString *> *)items containsTrimmedText:(NSString *)trimmedText {
+    for (NSString *item in items) {
+        NSString *trimmedItem = [self trimmedComparableTextFromString:item];
+        if ([trimmedItem isEqualToString:trimmedText]) {
+            return YES;
+        }
+    }
+
+    return NO;
+}
+
 - (BOOL)isPlaceholderInputTextView:(UITextView *)textView {
     NSString *rawText = textView.text ?: @"";
 
@@ -97,7 +115,7 @@
     }
 
     // Duplicate
-    if ([self.items containsObject:newText]) {
+    if ([self items:self.items containsTrimmedText:newText]) {
         [self showToastWithMessage:TextHelperAlreadyExistsToast(newText)];
         return;
     }
@@ -114,6 +132,7 @@
                                   index:(NSInteger)index
                             currentText:(NSString *)currentText {
     NSString *newText = [self trimmedInputTextFromTextView:textView];
+    NSString *trimmedCurrentText = [self trimmedComparableTextFromString:currentText];
     BOOL isPlaceholderText = [self isPlaceholderInputTextView:textView];
 
     NSMutableArray *otherItems = [self.items mutableCopy];
@@ -131,13 +150,13 @@
     }
 
     // No changes
-    if ([newText isEqualToString:currentText]) {
+    if ([newText isEqualToString:trimmedCurrentText]) {
         [self showToastWithMessage:TextHelperNoChangesToast(currentText)];
         return;
     }
 
     // Duplicate
-    if ([otherItems containsObject:newText]) {
+    if ([self items:otherItems containsTrimmedText:newText]) {
         [self showToastWithMessage:TextHelperAlreadyExistsToast(newText)];
         return;
     }

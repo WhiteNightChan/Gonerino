@@ -11,6 +11,10 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)extractVideoInfoFromNode:(id)node
                       completion:(void (^)(NSString *videoId, NSString *videoTitle, NSString *ownerName))completion;
 
++ (void)extractVideoInfoFromNode:(id)node
+                    fallbackNode:(id)fallbackNode
+                      completion:(void (^)(NSString *videoId, NSString *videoTitle, NSString *ownerName))completion;
+
 + (BOOL)nodeContainsBlockedVideo:(id)node;
 
 + (UIImage *)createBlockChannelIconWithSize:(CGSize)size;
