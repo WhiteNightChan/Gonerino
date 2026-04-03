@@ -11,6 +11,8 @@
 #import "LVHelpers/LVInputHelper.h"
 
 @interface ListViewController ()
+@property (nonatomic, strong) LVTextCell *sizingCell;
+
 - (void)handleItemSelectionAtIndex:(NSInteger)index;
 - (BOOL)shouldShowSearchBar;
 - (UILabel *)emptyStateLabelWithText:(NSString *)text;
@@ -21,6 +23,10 @@
 - (NSString *)currentCountDisplayText;
 - (void)updateRightBarButtonItemsForCurrentState;
 - (void)updateSelectionUIForCurrentState;
+
+- (LVTextCell *)estimatedSizingCell;
+- (CGFloat)estimatedHeightForDisplayText:(NSString *)text
+                               tableView:(UITableView *)tableView;
 @end
 
 @implementation ListViewController
@@ -42,7 +48,6 @@
     [self.tableView registerClass:LVTextCell.class
            forCellReuseIdentifier:@"LVTextCell"];
     self.tableView.rowHeight = UITableViewAutomaticDimension;
-    self.tableView.estimatedRowHeight = 56.0;
 
     self.searchBar = [self configuredSearchBar];
     self.tableView.tableHeaderView = self.searchBar;
@@ -85,6 +90,43 @@
     [self updateInteractivePopGestureEnabled];
     [self.navigationController setToolbarHidden:YES animated:NO];
     [self.navigationController popViewControllerAnimated:YES];
+}
+
+- (LVTextCell *)estimatedSizingCell {
+    if (!self.sizingCell) {
+        self.sizingCell =
+            [[LVTextCell alloc] initWithStyle:UITableViewCellStyleDefault
+                              reuseIdentifier:nil];
+    }
+
+    return self.sizingCell;
+}
+
+- (CGFloat)estimatedHeightForDisplayText:(NSString *)text
+                               tableView:(UITableView *)tableView {
+    CGFloat tableWidth = CGRectGetWidth(tableView.bounds);
+    if (tableWidth <= 0.0) {
+        return 44.0;
+    }
+
+    LVTextCell *cell = [self estimatedSizingCell];
+    [cell configureWithText:text ?: @""];
+
+    [cell setEditing:tableView.editing animated:NO];
+
+    cell.bounds = CGRectMake(0, 0, tableWidth, CGFLOAT_MAX);
+    [cell setNeedsLayout];
+    [cell layoutIfNeeded];
+
+    CGSize targetSize =
+        CGSizeMake(tableWidth, UILayoutFittingCompressedSize.height);
+
+    CGFloat height =
+        [cell.contentView systemLayoutSizeFittingSize:targetSize
+                 withHorizontalFittingPriority:UILayoutPriorityRequired
+                       verticalFittingPriority:UILayoutPriorityFittingSizeLevel].height;
+
+    return MAX(height, 1.0);
 }
 
 #pragma mark - Empty State
@@ -205,6 +247,18 @@
     return self.items.count;
 }
 
+- (CGFloat)tableView:(UITableView *)tableView
+estimatedHeightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    NSDictionary *entry = [self resolvedEntryForIndexPath:indexPath];
+    NSString *text = entry[@"text"];
+
+    if (![text isKindOfClass:[NSString class]]) {
+        return 44.0;
+    }
+
+    return [self estimatedHeightForDisplayText:text tableView:tableView];
+}
+
 - (UITableViewCell *)tableView:(UITableView *)tableView
          cellForRowAtIndexPath:(NSIndexPath *)indexPath {
 
@@ -270,8 +324,16 @@ didDeselectRowAtIndexPath:(NSIndexPath *)indexPath {
     }
 
     [self.tableView setEditing:editing animated:YES];
+
+    // One layout pass is always needed after toggling editing.
     [self.tableView beginUpdates];
     [self.tableView endUpdates];
+
+    if (!editing && !self.tableView.editing) {
+        // Exiting editing needs one additional synchronous layout pass to fully settle row geometry.
+        [self.tableView beginUpdates];
+        [self.tableView endUpdates];
+    }
 
     [self updateSelectionUIForCurrentState];
     [self updateInteractivePopGestureEnabled];
