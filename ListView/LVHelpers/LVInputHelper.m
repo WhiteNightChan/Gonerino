@@ -1,6 +1,6 @@
 #import "LVInputHelper.h"
 #import "LVPrivate.h"
-#import "LVSearchHelper.h"
+#import "LVSelectHelper.h"
 #import "TextHelper.h"
 
 @implementation ListViewController (LVInputHelper)
@@ -125,7 +125,10 @@
         self.addItemBlock(newText);
     }
 
-    [self reloadItemsFromSourceAndRefresh];
+    [self loadItemsFromSourceIfNeeded];
+    [self clearEditingSelectionForSearchRefresh];
+    [self reloadListDataForCurrentState];
+    [self refreshListUIForCurrentState];
 }
 
 - (void)handleEditInputSaveWithTextView:(UITextView *)textView
@@ -166,16 +169,13 @@
         self.editItemBlock(index, currentText, newText);
     }
 
-    [self reloadItemsFromSourceAndRefresh];
+    [self loadItemsFromSourceIfNeeded];
+    [self clearEditingSelectionForSearchRefresh];
+    [self reloadListDataForCurrentState];
+    [self refreshListUIForCurrentState];
 }
 
 #pragma mark - Input Actions
-
-- (void)addButtonTapped {
-    if (self.addItemBlock) {
-        [self presentAddInputAlert];
-    }
-}
 
 - (void)presentAddInputAlert {
     NSDictionary *config = [self inputConfigForEditing:NO];

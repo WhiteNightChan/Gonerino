@@ -1,8 +1,7 @@
 #import "ListViewController.h"
 
-@interface ListViewController (LVStateHelper)
+@interface ListViewController (LVControlHelper)
 - (BOOL)shouldApplyInitialSearchBarOffset;
 - (void)applyInitialSearchBarOffsetIfNeeded;
 - (void)updateInteractivePopGestureEnabled;
-- (void)loadItemsFromSourceIfNeeded;
 @end

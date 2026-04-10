@@ -55,16 +55,9 @@
         return @[];
     }
 
-    NSArray<NSIndexPath *> *sortedIndexPaths =
-        [indexPaths sortedArrayUsingComparator:^NSComparisonResult(NSIndexPath *obj1, NSIndexPath *obj2) {
-            if (obj1.row > obj2.row) return NSOrderedAscending;
-            if (obj1.row < obj2.row) return NSOrderedDescending;
-            return NSOrderedSame;
-        }];
-
     NSMutableArray<NSDictionary *> *entries = [NSMutableArray array];
 
-    for (NSIndexPath *indexPath in sortedIndexPaths) {
+    for (NSIndexPath *indexPath in indexPaths) {
         NSDictionary *entry = [self resolvedEntryForIndexPath:indexPath];
         if (entry) {
             [entries addObject:entry];
