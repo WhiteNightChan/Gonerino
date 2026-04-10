@@ -1,9 +1,9 @@
-#import "LVStateHelper.h"
+#import "LVControlHelper.h"
 #import "LVPrivate.h"
 
-@implementation ListViewController (LVStateHelper)
+@implementation ListViewController (LVControlHelper)
 
-#pragma mark - State
+#pragma mark - Control
 
 - (BOOL)shouldApplyInitialSearchBarOffset {
     if (self.hasAppliedInitialSearchBarOffset) {
@@ -49,15 +49,6 @@
     }
 
     interactivePopGesture.enabled = !self.tableView.editing;
-}
-
-- (void)loadItemsFromSourceIfNeeded {
-    if (self.loadItemsBlock) {
-        NSArray *loadedItems = self.loadItemsBlock();
-        self.items = loadedItems ? [loadedItems mutableCopy] : [NSMutableArray array];
-    } else if (!self.items) {
-        self.items = [NSMutableArray array];
-    }
 }
 
 @end

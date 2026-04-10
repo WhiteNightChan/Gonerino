@@ -14,7 +14,6 @@
 - (void)handleEditInputSaveWithTextView:(UITextView *)textView
                                   index:(NSInteger)index
                             currentText:(NSString *)currentText;
-- (void)addButtonTapped;
 - (void)presentAddInputAlert;
 - (void)presentEditInputAlertForIndex:(NSInteger)index
                           currentText:(NSString *)currentText;
