@@ -26,9 +26,9 @@
 
     if (selectedIndexPaths.count == 1) {
         NSIndexPath *indexPath = selectedIndexPaths.firstObject;
-        NSDictionary *entry = [self resolvedEntryForIndexPath:indexPath];
-        if ([entry[@"text"] isKindOfClass:[NSString class]]) {
-            selectedText = entry[@"text"];
+        NSString *resolvedText = [self resolvedTextForIndexPath:indexPath];
+        if ([resolvedText isKindOfClass:[NSString class]]) {
+            selectedText = resolvedText;
         }
     }
 
@@ -66,35 +66,19 @@
         return;
     }
 
-    NSArray<NSDictionary *> *resolvedEntries =
-        [self resolvedEntriesForSelectedIndexPaths:selectedIndexPaths];
-
-    NSMutableArray<NSString *> *selectedTexts = [NSMutableArray array];
     NSMutableArray<NSNumber *> *targetIndexes = [NSMutableArray array];
 
-    for (NSDictionary *entry in resolvedEntries) {
-        NSString *text = entry[@"text"];
-        NSNumber *originalIndex = entry[@"originalIndex"];
-
-        if (![text isKindOfClass:[NSString class]] ||
-            ![originalIndex isKindOfClass:[NSNumber class]]) {
+    for (NSIndexPath *indexPath in selectedIndexPaths) {
+        NSInteger originalIndex = [self resolvedOriginalIndexForIndexPath:indexPath];
+        if (originalIndex == NSNotFound) {
             continue;
         }
 
-        [selectedTexts addObject:text];
-        [targetIndexes addObject:originalIndex];
+        [targetIndexes addObject:@(originalIndex)];
     }
 
-    if (selectedTexts.count == 0 || targetIndexes.count == 0) {
+    if (targetIndexes.count == 0) {
         return;
-    }
-
-    if (self.removeSelectedItemsBlock) {
-        self.removeSelectedItemsBlock([selectedTexts copy]);
-    } else if (self.removeItemBlock) {
-        for (NSString *text in selectedTexts) {
-            self.removeItemBlock(text);
-        }
     }
 
     NSArray<NSNumber *> *sortedTargetIndexes =
@@ -103,6 +87,14 @@
             if (obj1.integerValue < obj2.integerValue) return NSOrderedDescending;
             return NSOrderedSame;
         }];
+
+    if (self.removeItemsAtIndexesBlock) {
+        self.removeItemsAtIndexesBlock([sortedTargetIndexes copy]);
+    } else if (self.removeItemAtIndexBlock) {
+        for (NSNumber *targetIndex in sortedTargetIndexes) {
+            self.removeItemAtIndexBlock([targetIndex integerValue]);
+        }
+    }
 
     for (NSNumber *targetIndex in sortedTargetIndexes) {
         NSInteger row = [targetIndex integerValue];
@@ -132,19 +124,13 @@ commitEditingStyle:(UITableViewCellEditingStyle)editingStyle
 forRowAtIndexPath:(NSIndexPath *)indexPath {
 
     if (editingStyle == UITableViewCellEditingStyleDelete) {
-        NSDictionary *entry = [self resolvedEntryForIndexPath:indexPath];
-        NSString *item = entry[@"text"];
-        NSNumber *originalIndex = entry[@"originalIndex"];
-
-        if (![item isKindOfClass:[NSString class]] ||
-            ![originalIndex isKindOfClass:[NSNumber class]]) {
+        NSInteger targetIndex = [self resolvedOriginalIndexForIndexPath:indexPath];
+        if (targetIndex == NSNotFound) {
             return;
         }
 
-        NSInteger targetIndex = [originalIndex integerValue];
-
-        if (self.removeItemBlock) {
-            self.removeItemBlock(item);
+        if (self.removeItemAtIndexBlock) {
+            self.removeItemAtIndexBlock(targetIndex);
         }
 
         [self.items removeObjectAtIndex:targetIndex];

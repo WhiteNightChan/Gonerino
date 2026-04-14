@@ -1,5 +1,6 @@
 #import "LVInputHelper.h"
 #import "LVPrivate.h"
+#import "LVResolveHelper.h"
 #import "LVSelectHelper.h"
 #import "TextHelper.h"
 
@@ -87,9 +88,19 @@
         [NSCharacterSet whitespaceAndNewlineCharacterSet]];
 }
 
-- (BOOL)items:(NSArray<NSString *> *)items containsTrimmedText:(NSString *)trimmedText {
-    for (NSString *item in items) {
-        NSString *trimmedItem = [self trimmedComparableTextFromString:item];
+- (BOOL)itemsContainTrimmedText:(NSString *)trimmedText
+         excludingOriginalIndex:(NSInteger)excludedIndex {
+    for (NSInteger i = 0; i < self.items.count; i++) {
+        if (excludedIndex != NSNotFound && i == excludedIndex) {
+            continue;
+        }
+
+        NSString *itemText = [self resolvedTextForOriginalIndex:i];
+        if (![itemText isKindOfClass:[NSString class]]) {
+            continue;
+        }
+
+        NSString *trimmedItem = [self trimmedComparableTextFromString:itemText];
         if ([trimmedItem isEqualToString:trimmedText]) {
             return YES;
         }
@@ -115,7 +126,7 @@
     }
 
     // Duplicate
-    if ([self items:self.items containsTrimmedText:newText]) {
+    if ([self itemsContainTrimmedText:newText excludingOriginalIndex:NSNotFound]) {
         [self showToastWithMessage:TextHelperAlreadyExistsToast(newText)];
         return;
     }
@@ -138,15 +149,6 @@
     NSString *trimmedCurrentText = [self trimmedComparableTextFromString:currentText];
     BOOL isPlaceholderText = [self isPlaceholderInputTextView:textView];
 
-    NSMutableArray *otherItems = [self.items mutableCopy];
-    if (!otherItems) {
-        otherItems = [NSMutableArray array];
-    }
-
-    if (index >= 0 && index < otherItems.count) {
-        [otherItems removeObjectAtIndex:index];
-    }
-
     // Empty or placeholder
     if (newText.length == 0 || isPlaceholderText) {
         return;
@@ -159,14 +161,14 @@
     }
 
     // Duplicate
-    if ([self items:otherItems containsTrimmedText:newText]) {
+    if ([self itemsContainTrimmedText:newText excludingOriginalIndex:index]) {
         [self showToastWithMessage:TextHelperAlreadyExistsToast(newText)];
         return;
     }
 
     // Save normally
     if (self.editItemBlock) {
-        self.editItemBlock(index, currentText, newText);
+        self.editItemBlock(index, newText);
     }
 
     [self loadItemsFromSourceIfNeeded];
