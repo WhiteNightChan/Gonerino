@@ -3,12 +3,13 @@
 @class LVTextCell;
 
 @interface ListViewController () <UITextViewDelegate, UIGestureRecognizerDelegate, UISearchBarDelegate>
+@property (nonatomic, strong) NSMutableArray *items;
 @property (nonatomic, copy) NSString *currentInputPlaceholder;
 
 @property (nonatomic, strong) UISearchBar *searchBar;
 @property (nonatomic, assign) BOOL isSearching;
 @property (nonatomic, copy) NSString *searchText;
-@property (nonatomic, strong) NSMutableArray<NSDictionary *> *filteredItems;
+@property (nonatomic, strong) NSMutableArray *filteredItems;
 @property (nonatomic, assign) BOOL hasAppliedInitialSearchBarOffset;
 @property (nonatomic, assign) CGFloat initialTableViewOffsetY;
 @property (nonatomic, strong) LVTextCell *sizingCell;

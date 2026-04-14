@@ -1,6 +1,7 @@
 #import "LVSearchHelper.h"
 #import "LVPrivate.h"
 #import "LVControlHelper.h"
+#import "LVResolveHelper.h"
 #import "LVSelectHelper.h"
 
 @implementation ListViewController (LVSearchHelper)
@@ -25,16 +26,13 @@
     NSString *lowercasedSearchText = [self.searchText lowercaseString];
 
     for (NSInteger i = 0; i < self.items.count; i++) {
-        NSString *text = self.items[i];
+        NSString *text = [self resolvedTextForOriginalIndex:i];
         if (![text isKindOfClass:[NSString class]]) {
             continue;
         }
 
         if ([[text lowercaseString] containsString:lowercasedSearchText]) {
-            [self.filteredItems addObject:@{
-                @"text": text,
-                @"originalIndex": @(i)
-            }];
+            [self.filteredItems addObject:@(i)];
         }
     }
 }

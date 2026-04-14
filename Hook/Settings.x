@@ -1,5 +1,6 @@
 #import "Settings.h"
 #import "SettingsExchangeHelper.h"
+#import "SettingsModifyHelper.h"
 #import "ListViewController.h"
 #import "ToastHelper.h"
 #import "TextHelper.h"
@@ -43,69 +44,47 @@
                         vc.loadItemsBlock = ^NSArray *{
                             return [[ChannelManager sharedInstance] blockedChannels];
                         };
-                        vc.removeItemBlock = ^(NSString *text) {
-                            [[ChannelManager sharedInstance] removeBlockedChannel:text];
-                            [self showGonerinoToastWithMessage:
-                                TextHelperDeletedQuotedToast(text)];
-                        };
-                        vc.removeSelectedItemsBlock = ^(NSArray<NSString *> *texts) {
-                            NSMutableArray *updatedChannels =
-                                [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
-                            if (!updatedChannels) {
-                                updatedChannels = [NSMutableArray array];
-                            }
-
-                            [updatedChannels removeObjectsInArray:texts];
-                            [[ChannelManager sharedInstance] setBlockedChannels:updatedChannels];
-
-                            if (texts.count == 1) {
-                                [self showGonerinoToastWithMessage:
-                                    TextHelperDeletedQuotedToast(texts.firstObject)];
-                            } else {
-                                [self showMultipleDeleteToastForItemType:@"channel" count:texts.count];
-                            }
-                        };
-                        vc.moveItemBlock = ^(NSInteger fromIndex, NSInteger toIndex) {
-                            NSMutableArray *updatedChannels =
-                                [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
-                            if (!updatedChannels) return;
-
-                            if (fromIndex < 0 || toIndex < 0 ||
-                                fromIndex >= updatedChannels.count ||
-                                toIndex >= updatedChannels.count) {
+                        vc.removeItemAtIndexBlock = ^(NSInteger index) {
+                            NSString *deletedText =
+                                [SettingsModifyHelper deleteChannelAtIndex:index];
+                            if (deletedText.length == 0) {
                                 return;
                             }
 
-                            NSString *item = updatedChannels[fromIndex];
-                            [updatedChannels removeObjectAtIndex:fromIndex];
-                            [updatedChannels insertObject:item atIndex:toIndex];
-
-                            [[ChannelManager sharedInstance] setBlockedChannels:updatedChannels];
+                            [self showGonerinoToastWithMessage:
+                                TextHelperDeletedQuotedToast(deletedText)];
+                        };
+                        vc.removeItemsAtIndexesBlock = ^(NSArray<NSNumber *> *indexes) {
+                            NSArray<NSString *> *deletedTexts =
+                                [SettingsModifyHelper deleteChannelsAtIndexes:indexes];
+                            if (deletedTexts.count == 1) {
+                                [self showGonerinoToastWithMessage:
+                                    TextHelperDeletedQuotedToast(deletedTexts.firstObject)];
+                            } else if (deletedTexts.count > 1) {
+                                [self showMultipleDeleteToastForItemType:@"channel" count:deletedTexts.count];
+                            }
+                        };
+                        vc.moveItemBlock = ^(NSInteger fromIndex, NSInteger toIndex) {
+                            [SettingsModifyHelper moveChannelFromIndex:fromIndex
+                                                               toIndex:toIndex];
                         };
 
                         vc.addItemBlock = ^(NSString *newText) {
-                            [[ChannelManager sharedInstance] addBlockedChannel:newText];
+                            [SettingsModifyHelper addChannelWithText:newText];
 
                             [self showGonerinoToastWithMessage:
                                 TextHelperAddedQuotedToast(newText)];
                         };
 
-                        vc.editItemBlock = ^(NSInteger index, NSString *oldText, NSString *newText) {
-                            NSMutableArray<NSString *> *updatedChannels =
-                                [[[ChannelManager sharedInstance] blockedChannels] mutableCopy];
-                            if (!updatedChannels) {
-                                updatedChannels = [NSMutableArray array];
-                            }
-
-                            if (index < 0 || index >= updatedChannels.count) {
+                        vc.editItemBlock = ^(NSInteger index, NSString *newText) {
+                            NSString *previousText =
+                                [SettingsModifyHelper editChannelAtIndex:index newText:newText];
+                            if (previousText.length == 0) {
                                 return;
                             }
 
-                            updatedChannels[index] = newText;
-                            [[ChannelManager sharedInstance] setBlockedChannels:updatedChannels];
-
                             [self showGonerinoToastWithMessage:
-                                TextHelperEditedToast(oldText, newText)];
+                                TextHelperEditedToast(previousText, newText)];
                         };
 
                         YTSettingsViewController *delegate =
@@ -222,69 +201,47 @@
                         vc.loadItemsBlock = ^NSArray *{
                             return [[WordManager sharedInstance] blockedWords];
                         };
-                        vc.removeItemBlock = ^(NSString *text) {
-                            [[WordManager sharedInstance] removeBlockedWord:text];
-                            [self showGonerinoToastWithMessage:
-                                TextHelperDeletedQuotedToast(text)];
-                        };
-                        vc.removeSelectedItemsBlock = ^(NSArray<NSString *> *texts) {
-                            NSMutableArray *updatedWords =
-                                [[[WordManager sharedInstance] blockedWords] mutableCopy];
-                            if (!updatedWords) {
-                                updatedWords = [NSMutableArray array];
-                            }
-
-                            [updatedWords removeObjectsInArray:texts];
-                            [[WordManager sharedInstance] setBlockedWords:updatedWords];
-
-                            if (texts.count == 1) {
-                                [self showGonerinoToastWithMessage:
-                                    TextHelperDeletedQuotedToast(texts.firstObject)];
-                            } else {
-                                [self showMultipleDeleteToastForItemType:@"word" count:texts.count];
-                            }
-                        };
-                        vc.moveItemBlock = ^(NSInteger fromIndex, NSInteger toIndex) {
-                            NSMutableArray *updatedWords =
-                                [[[WordManager sharedInstance] blockedWords] mutableCopy];
-                            if (!updatedWords) return;
-
-                            if (fromIndex < 0 || toIndex < 0 ||
-                                fromIndex >= updatedWords.count ||
-                                toIndex >= updatedWords.count) {
+                        vc.removeItemAtIndexBlock = ^(NSInteger index) {
+                            NSString *deletedText =
+                                [SettingsModifyHelper deleteWordAtIndex:index];
+                            if (deletedText.length == 0) {
                                 return;
                             }
 
-                            NSString *item = updatedWords[fromIndex];
-                            [updatedWords removeObjectAtIndex:fromIndex];
-                            [updatedWords insertObject:item atIndex:toIndex];
-
-                            [[WordManager sharedInstance] setBlockedWords:updatedWords];
+                            [self showGonerinoToastWithMessage:
+                                TextHelperDeletedQuotedToast(deletedText)];
+                        };
+                        vc.removeItemsAtIndexesBlock = ^(NSArray<NSNumber *> *indexes) {
+                            NSArray<NSString *> *deletedTexts =
+                                [SettingsModifyHelper deleteWordsAtIndexes:indexes];
+                            if (deletedTexts.count == 1) {
+                                [self showGonerinoToastWithMessage:
+                                    TextHelperDeletedQuotedToast(deletedTexts.firstObject)];
+                            } else if (deletedTexts.count > 1) {
+                                [self showMultipleDeleteToastForItemType:@"word" count:deletedTexts.count];
+                            }
+                        };
+                        vc.moveItemBlock = ^(NSInteger fromIndex, NSInteger toIndex) {
+                            [SettingsModifyHelper moveWordFromIndex:fromIndex
+                                                            toIndex:toIndex];
                         };
 
                         vc.addItemBlock = ^(NSString *newText) {
-                            [[WordManager sharedInstance] addBlockedWord:newText];
+                            [SettingsModifyHelper addWordWithText:newText];
 
                             [self showGonerinoToastWithMessage:
                                 TextHelperAddedQuotedToast(newText)];
                         };
 
-                        vc.editItemBlock = ^(NSInteger index, NSString *oldText, NSString *newText) {
-                            NSMutableArray<NSString *> *updatedWords =
-                                [[[WordManager sharedInstance] blockedWords] mutableCopy];
-                            if (!updatedWords) {
-                                updatedWords = [NSMutableArray array];
-                            }
-
-                            if (index < 0 || index >= updatedWords.count) {
+                        vc.editItemBlock = ^(NSInteger index, NSString *newText) {
+                            NSString *previousText =
+                                [SettingsModifyHelper editWordAtIndex:index newText:newText];
+                            if (previousText.length == 0) {
                                 return;
                             }
 
-                            updatedWords[index] = newText;
-                            [[WordManager sharedInstance] setBlockedWords:updatedWords];
-
                             [self showGonerinoToastWithMessage:
-                                TextHelperEditedToast(oldText, newText)];
+                                TextHelperEditedToast(previousText, newText)];
                         };
 
                         YTSettingsViewController *delegate =

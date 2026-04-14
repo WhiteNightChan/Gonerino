@@ -3,20 +3,21 @@
 #import "TextHelper.h"
 #import "LVTextCell.h"
 
-#import "LVHelpers/LVPrivate.h"
-#import "LVHelpers/LVResolveHelper.h"
-#import "LVHelpers/LVDeleteFlowHelper.h"
-#import "LVHelpers/LVSelectHelper.h"
-#import "LVHelpers/LVControlHelper.h"
-#import "LVHelpers/LVSetupHelper.h"
-#import "LVHelpers/LVInputHelper.h"
-#import "LVHelpers/LVMeasureHelper.h"
-#import "LVHelpers/LVPresentHelper.h"
-#import "LVHelpers/LVSearchHelper.h"
+#import "LVHelper/LVPrivate.h"
+#import "LVHelper/LVResolveHelper.h"
+#import "LVHelper/LVDeleteFlowHelper.h"
+#import "LVHelper/LVSelectHelper.h"
+#import "LVHelper/LVControlHelper.h"
+#import "LVHelper/LVSetupHelper.h"
+#import "LVHelper/LVInputHelper.h"
+#import "LVHelper/LVMeasureHelper.h"
+#import "LVHelper/LVPresentHelper.h"
+#import "LVHelper/LVSearchHelper.h"
 
 @interface ListViewController ()
 
-- (void)handleItemSelectionWithResolvedEntry:(NSDictionary *)entry;
+- (void)handleItemSelectionWithOriginalIndex:(NSInteger)index
+                                 currentText:(NSString *)currentText;
 - (void)updateEmptyStateIfNeeded;
 
 @end
@@ -149,8 +150,7 @@
 
 - (CGFloat)tableView:(UITableView *)tableView
 estimatedHeightForRowAtIndexPath:(NSIndexPath *)indexPath {
-    NSDictionary *entry = [self resolvedEntryForIndexPath:indexPath];
-    NSString *text = entry[@"text"];
+    NSString *text = [self resolvedTextForIndexPath:indexPath];
 
     if (![text isKindOfClass:[NSString class]]) {
         return 44.0;
@@ -166,8 +166,7 @@ estimatedHeightForRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView dequeueReusableCellWithIdentifier:@"LVTextCell"
                                     forIndexPath:indexPath];
 
-    NSDictionary *entry = [self resolvedEntryForIndexPath:indexPath];
-    NSString *displayText = entry[@"text"];
+    NSString *displayText = [self resolvedTextForIndexPath:indexPath];
 
     [cell configureWithText:displayText];
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
@@ -187,8 +186,9 @@ didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
 
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 
-    NSDictionary *entry = [self resolvedEntryForIndexPath:indexPath];
-    [self handleItemSelectionWithResolvedEntry:entry];
+    NSString *currentText = [self resolvedTextForIndexPath:indexPath];
+    NSInteger originalIndex = [self resolvedOriginalIndexForIndexPath:indexPath];
+    [self handleItemSelectionWithOriginalIndex:originalIndex currentText:currentText];
 }
 
 - (void)tableView:(UITableView *)tableView
@@ -205,17 +205,12 @@ didDeselectRowAtIndexPath:(NSIndexPath *)indexPath {
     }
 }
 
-- (void)handleItemSelectionWithResolvedEntry:(NSDictionary *)entry {
-    NSNumber *originalIndex = entry[@"originalIndex"];
-    NSString *currentText = entry[@"text"];
-
-    if (![originalIndex isKindOfClass:[NSNumber class]] ||
-        ![currentText isKindOfClass:[NSString class]]) {
-        return;
-    }
-
-    NSInteger index = [originalIndex integerValue];
-    if (index < 0 || index >= self.items.count) {
+- (void)handleItemSelectionWithOriginalIndex:(NSInteger)index
+                                 currentText:(NSString *)currentText {
+    if (index == NSNotFound ||
+        ![currentText isKindOfClass:[NSString class]] ||
+        index < 0 ||
+        index >= self.items.count) {
         return;
     }
 
@@ -268,7 +263,7 @@ canMoveRowAtIndexPath:(NSIndexPath *)indexPath {
 moveRowAtIndexPath:(NSIndexPath *)fromIndexPath
       toIndexPath:(NSIndexPath *)toIndexPath {
 
-    NSString *item = self.items[fromIndexPath.row];
+    id item = self.items[fromIndexPath.row];
     [self.items removeObjectAtIndex:fromIndexPath.row];
     [self.items insertObject:item atIndex:toIndexPath.row];
 
@@ -299,8 +294,7 @@ moveRowAtIndexPath:(NSIndexPath *)fromIndexPath
         return;
     }
 
-    NSDictionary *entry = [self resolvedEntryForIndexPath:indexPath];
-    NSString *text = entry[@"text"];
+    NSString *text = [self resolvedTextForIndexPath:indexPath];
 
     if (![text isKindOfClass:[NSString class]]) {
         return;
