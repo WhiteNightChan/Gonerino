@@ -1,0 +1,44 @@
+name: Rebase with Upstream
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: "Branch to rebase"
+        default: "ListView"
+        required: true
+        type: string
+
+jobs:
+  rebase:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.target_branch }}
+
+      - name: Hide sensitive inputs
+        uses: levibostian/action-hide-sensitive-inputs@v1
+
+      - name: Configure git
+        run: |
+          git config user.name "${{ secrets.COMMITTER_USER_NAME }}"
+          git config user.email "${{ secrets.COMMITTER_USER_EMAIL }}"
+
+      - name: Add upstream and fetch
+        run: |
+          git remote add upstream https://github.com/castdrian/Gonerino.git
+          git fetch upstream main
+
+      - name: Rebase ${{ inputs.target_branch }} onto upstream/main
+        run: |
+          git rebase --committer-date-is-author-date upstream/main
+
+      - name: Push rebased ${{ inputs.target_branch }}
+        run: |
+          git push origin HEAD:${{ inputs.target_branch }} --force-with-lease

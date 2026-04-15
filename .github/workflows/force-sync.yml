@@ -1,0 +1,54 @@
+name: Force Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: "Source branch to copy from"
+        default: "ListView"
+        required: true
+        type: string
+      target_branch:
+        description: "Target branch to overwrite"
+        default: "main"
+        required: true
+        type: string
+      create_backup:
+        description: "Create backup branch before overwrite"
+        default: true
+        required: true
+        type: boolean
+
+jobs:
+  force-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_branch }}
+          fetch-depth: 0
+
+      - name: Fetch target branch
+        run: |
+          git fetch origin "${{ inputs.target_branch }}"
+
+      - name: Capture target SHA
+        id: target
+        run: |
+          echo "sha=$(git rev-parse origin/${{ inputs.target_branch }})" >> "$GITHUB_OUTPUT"
+
+      - name: Create backup branch
+        if: ${{ inputs.create_backup }}
+        run: |
+          BACKUP_BRANCH="backup-${{ inputs.target_branch }}-$(date -u +'%Y%m%d-%H%M%S')"
+          git push origin "refs/remotes/origin/${{ inputs.target_branch }}:refs/heads/${BACKUP_BRANCH}"
+
+      - name: Force sync source to target
+        run: |
+          git push origin \
+            "refs/heads/${{ inputs.source_branch }}:refs/heads/${{ inputs.target_branch }}" \
+            --force-with-lease=refs/heads/${{ inputs.target_branch }}:${{ steps.target.outputs.sha }}
